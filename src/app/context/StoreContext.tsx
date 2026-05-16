@@ -1,0 +1,412 @@
+import { createContext, useContext, ReactNode } from 'react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { Product, Category, Order, CartItem, Review, Coupon, WishlistItem } from '../types';
+
+interface StoreContextType {
+  products: Product[];
+  setProducts: (products: Product[] | ((prev: Product[]) => Product[])) => void;
+  categories: Category[];
+  setCategories: (categories: Category[] | ((prev: Category[]) => Category[])) => void;
+  orders: Order[];
+  setOrders: (orders: Order[] | ((prev: Order[]) => Order[])) => void;
+  cart: CartItem[];
+  setCart: (cart: CartItem[] | ((prev: CartItem[]) => CartItem[])) => void;
+  reviews: Review[];
+  setReviews: (reviews: Review[] | ((prev: Review[]) => Review[])) => void;
+  coupons: Coupon[];
+  setCoupons: (coupons: Coupon[] | ((prev: Coupon[]) => Coupon[])) => void;
+  wishlist: WishlistItem[];
+  setWishlist: (wishlist: WishlistItem[] | ((prev: WishlistItem[]) => WishlistItem[])) => void;
+  addToCart: (productId: string, quantity: number, selectedVariants?: Record<string, string>) => void;
+  removeFromCart: (productId: string) => void;
+  updateCartQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
+  toggleWishlist: (productId: string) => void;
+  isInWishlist: (productId: string) => boolean;
+  validateCoupon: (code: string, subtotal: number) => { valid: boolean; discount: number; message: string };
+}
+
+const StoreContext = createContext<StoreContextType | undefined>(undefined);
+
+const defaultCategories: Category[] = [
+  { id: '1', name: 'Electronics', description: 'Cutting-edge electronic devices and gadgets', image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop' },
+  { id: '2', name: 'Clothing', description: 'Trendy fashion and premium apparel', image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop' },
+  { id: '3', name: 'Home & Living', description: 'Beautiful home decor and essentials', image: 'https://images.unsplash.com/photo-1556912173-3bb406ef7e77?w=400&h=300&fit=crop' },
+  { id: '4', name: 'Sports & Outdoors', description: 'Gear for active lifestyles', image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&h=300&fit=crop' },
+  { id: '5', name: 'Books & Media', description: 'Literature, music, and entertainment', image: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400&h=300&fit=crop' },
+  { id: '6', name: 'Beauty & Health', description: 'Personal care and wellness products', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop' },
+];
+
+const defaultProducts: Product[] = [
+  {
+    id: '1',
+    name: 'Premium Wireless Headphones',
+    description: 'Experience studio-quality sound with active noise cancellation, 30-hour battery life, and premium comfort. Perfect for music lovers and professionals.',
+    price: 299.99,
+    compareAtPrice: 399.99,
+    images: [
+      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&h=800&fit=crop',
+    ],
+    category: 'Electronics',
+    stock: 50,
+    sku: 'WH-PRO-001',
+    tags: ['audio', 'wireless', 'premium', 'noise-cancelling'],
+    rating: 4.8,
+    reviewCount: 234,
+    featured: true,
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    name: 'Smart Fitness Watch Pro',
+    description: 'Advanced fitness tracking with heart rate monitoring, GPS, sleep analysis, and 50+ sport modes. Water-resistant up to 50m.',
+    price: 249.99,
+    compareAtPrice: 349.99,
+    images: [
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=800&h=800&fit=crop',
+    ],
+    category: 'Electronics',
+    stock: 30,
+    sku: 'SW-PRO-002',
+    tags: ['fitness', 'smartwatch', 'health', 'waterproof'],
+    variants: [
+      { id: 'v1', name: 'Band Color', options: ['Black', 'Navy', 'Rose Gold', 'Silver'] },
+      { id: 'v2', name: 'Size', options: ['Small', 'Medium', 'Large'] },
+    ],
+    rating: 4.6,
+    reviewCount: 189,
+    featured: true,
+    createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    name: 'Premium Cotton T-Shirt',
+    description: 'Ultra-soft 100% organic cotton t-shirt with a perfect fit. Breathable, durable, and ethically made. Available in multiple colors.',
+    price: 34.99,
+    images: [
+      'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&h=800&fit=crop',
+    ],
+    category: 'Clothing',
+    stock: 100,
+    sku: 'TS-ORG-003',
+    tags: ['organic', 'cotton', 'casual', 'sustainable'],
+    variants: [
+      { id: 'v1', name: 'Color', options: ['White', 'Black', 'Navy', 'Gray', 'Olive'] },
+      { id: 'v2', name: 'Size', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
+    ],
+    rating: 4.9,
+    reviewCount: 456,
+    featured: false,
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '4',
+    name: 'Professional Running Shoes',
+    description: 'Engineered for performance with responsive cushioning, breathable mesh, and superior grip. Perfect for runners of all levels.',
+    price: 129.99,
+    compareAtPrice: 159.99,
+    images: [
+      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=800&h=800&fit=crop',
+    ],
+    category: 'Sports & Outdoors',
+    stock: 45,
+    sku: 'RS-PRO-004',
+    tags: ['running', 'sports', 'performance', 'cushioning'],
+    variants: [
+      { id: 'v1', name: 'Size', options: ['6', '7', '8', '9', '10', '11', '12'] },
+      { id: 'v2', name: 'Width', options: ['Regular', 'Wide'] },
+    ],
+    rating: 4.7,
+    reviewCount: 312,
+    featured: true,
+    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '5',
+    name: 'Luxury Leather Backpack',
+    description: 'Handcrafted genuine leather backpack with laptop compartment, multiple pockets, and adjustable straps. Perfect for work or travel.',
+    price: 189.99,
+    images: [
+      'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=800&h=800&fit=crop',
+    ],
+    category: 'Home & Living',
+    stock: 25,
+    sku: 'BP-LUX-005',
+    tags: ['leather', 'backpack', 'luxury', 'handcrafted'],
+    variants: [
+      { id: 'v1', name: 'Color', options: ['Brown', 'Black', 'Tan'] },
+    ],
+    rating: 4.8,
+    reviewCount: 87,
+    featured: false,
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '6',
+    name: 'Bestseller Novel Collection',
+    description: 'Collection of 3 award-winning novels from contemporary authors. Perfect for book lovers and gift giving.',
+    price: 49.99,
+    images: [
+      'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=800&h=800&fit=crop',
+    ],
+    category: 'Books & Media',
+    stock: 60,
+    sku: 'BK-COL-006',
+    tags: ['books', 'fiction', 'bestseller', 'collection'],
+    rating: 4.9,
+    reviewCount: 178,
+    featured: false,
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '7',
+    name: 'Organic Skincare Set',
+    description: 'Complete skincare routine with cleanser, toner, serum, and moisturizer. All-natural, cruelty-free, and suitable for all skin types.',
+    price: 89.99,
+    compareAtPrice: 119.99,
+    images: [
+      'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=800&fit=crop',
+      'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=800&h=800&fit=crop',
+    ],
+    category: 'Beauty & Health',
+    stock: 40,
+    sku: 'SK-ORG-007',
+    tags: ['skincare', 'organic', 'beauty', 'natural'],
+    rating: 4.7,
+    reviewCount: 203,
+    featured: true,
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '8',
+    name: 'Yoga Mat Premium',
+    description: 'Extra thick, non-slip yoga mat with alignment marks. Eco-friendly TPE material, includes carrying strap.',
+    price: 59.99,
+    images: [
+      'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=800&h=800&fit=crop',
+    ],
+    category: 'Sports & Outdoors',
+    stock: 55,
+    sku: 'YM-PRE-008',
+    tags: ['yoga', 'fitness', 'eco-friendly', 'exercise'],
+    variants: [
+      { id: 'v1', name: 'Color', options: ['Purple', 'Blue', 'Pink', 'Green', 'Gray'] },
+    ],
+    rating: 4.6,
+    reviewCount: 145,
+    featured: false,
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+const defaultReviews: Review[] = [
+  {
+    id: 'r1',
+    productId: '1',
+    customerName: 'Sarah Johnson',
+    customerEmail: 'sarah@example.com',
+    rating: 5,
+    title: 'Best headphones I\'ve ever owned',
+    comment: 'The sound quality is incredible and the noise cancellation is perfect for my daily commute. Battery life exceeds expectations!',
+    verified: true,
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'r2',
+    productId: '1',
+    customerName: 'Mike Chen',
+    customerEmail: 'mike@example.com',
+    rating: 4,
+    title: 'Great value for money',
+    comment: 'Really impressed with these headphones. Comfortable for long sessions and the sound is crisp.',
+    verified: true,
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'r3',
+    productId: '3',
+    customerName: 'Emma Davis',
+    customerEmail: 'emma@example.com',
+    rating: 5,
+    title: 'Perfect fit and amazing quality',
+    comment: 'Love this t-shirt! The organic cotton is so soft and it fits perfectly. Will definitely buy more colors.',
+    verified: true,
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+const defaultCoupons: Coupon[] = [
+  {
+    id: 'c1',
+    code: 'WELCOME10',
+    description: '10% off your first order',
+    discountType: 'percentage',
+    discountValue: 10,
+    minOrderValue: 50,
+    usageLimit: 1000,
+    usageCount: 0,
+    active: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'c2',
+    code: 'SAVE20',
+    description: '$20 off orders over $100',
+    discountType: 'fixed',
+    discountValue: 20,
+    minOrderValue: 100,
+    usageCount: 0,
+    active: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'c3',
+    code: 'FREESHIP',
+    description: 'Free shipping on all orders',
+    discountType: 'fixed',
+    discountValue: 10,
+    usageCount: 0,
+    active: true,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export function StoreProvider({ children }: { children: ReactNode }) {
+  const [products, setProducts] = useLocalStorage<Product[]>('ecommerce_products_v2', defaultProducts);
+  const [categories, setCategories] = useLocalStorage<Category[]>('ecommerce_categories_v2', defaultCategories);
+  const [orders, setOrders] = useLocalStorage<Order[]>('ecommerce_orders_v2', []);
+  const [cart, setCart] = useLocalStorage<CartItem[]>('ecommerce_cart_v2', []);
+  const [reviews, setReviews] = useLocalStorage<Review[]>('ecommerce_reviews', defaultReviews);
+  const [coupons, setCoupons] = useLocalStorage<Coupon[]>('ecommerce_coupons', defaultCoupons);
+  const [wishlist, setWishlist] = useLocalStorage<WishlistItem[]>('ecommerce_wishlist', []);
+
+  const addToCart = (productId: string, quantity: number, selectedVariants?: Record<string, string>) => {
+    setCart((prevCart) => {
+      const existingItem = prevCart.find((item) => item.productId === productId);
+      if (existingItem) {
+        return prevCart.map((item) =>
+          item.productId === productId
+            ? { ...item, quantity: item.quantity + quantity, selectedVariants }
+            : item
+        );
+      }
+      return [...prevCart, { productId, quantity, selectedVariants }];
+    });
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart((prevCart) => prevCart.filter((item) => item.productId !== productId));
+  };
+
+  const updateCartQuantity = (productId: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    setCart((prevCart) =>
+      prevCart.map((item) =>
+        item.productId === productId ? { ...item, quantity } : item
+      )
+    );
+  };
+
+  const clearCart = () => {
+    setCart([]);
+  };
+
+  const toggleWishlist = (productId: string) => {
+    setWishlist((prev) => {
+      const exists = prev.find((item) => item.productId === productId);
+      if (exists) {
+        return prev.filter((item) => item.productId !== productId);
+      }
+      return [...prev, { productId, addedAt: new Date().toISOString() }];
+    });
+  };
+
+  const isInWishlist = (productId: string) => {
+    return wishlist.some((item) => item.productId === productId);
+  };
+
+  const validateCoupon = (code: string, subtotal: number) => {
+    const coupon = coupons.find((c) => c.code.toUpperCase() === code.toUpperCase() && c.active);
+
+    if (!coupon) {
+      return { valid: false, discount: 0, message: 'Invalid coupon code' };
+    }
+
+    if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
+      return { valid: false, discount: 0, message: 'Coupon has expired' };
+    }
+
+    if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
+      return { valid: false, discount: 0, message: 'Coupon usage limit reached' };
+    }
+
+    if (coupon.minOrderValue && subtotal < coupon.minOrderValue) {
+      return {
+        valid: false,
+        discount: 0,
+        message: `Minimum order value of $${coupon.minOrderValue} required`
+      };
+    }
+
+    const discount = coupon.discountType === 'percentage'
+      ? (subtotal * coupon.discountValue) / 100
+      : coupon.discountValue;
+
+    return { valid: true, discount, message: 'Coupon applied successfully!' };
+  };
+
+  return (
+    <StoreContext.Provider
+      value={{
+        products,
+        setProducts,
+        categories,
+        setCategories,
+        orders,
+        setOrders,
+        cart,
+        setCart,
+        reviews,
+        setReviews,
+        coupons,
+        setCoupons,
+        wishlist,
+        setWishlist,
+        addToCart,
+        removeFromCart,
+        updateCartQuantity,
+        clearCart,
+        toggleWishlist,
+        isInWishlist,
+        validateCoupon,
+      }}
+    >
+      {children}
+    </StoreContext.Provider>
+  );
+}
+
+export function useStore() {
+  const context = useContext(StoreContext);
+  if (context === undefined) {
+    throw new Error('useStore must be used within a StoreProvider');
+  }
+  return context;
+}
