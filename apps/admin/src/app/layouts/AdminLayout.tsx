@@ -9,7 +9,6 @@ import {
   MessageSquare,
   Settings,
   Layers,
-  PanelTop,
   LogOut,
   Users,
 } from 'lucide-react';
@@ -52,14 +51,11 @@ export default function AdminLayout() {
     },
     {
       heading: 'Storefront',
-      items: [
-        { path: '/header-footer', icon: PanelTop, label: 'Header & footer' },
-        { path: '/pages', icon: Layers, label: 'Pages' },
-      ],
+      items: [{ path: '/pages', icon: Layers, label: 'Pages' }],
     },
     {
-      heading: 'Configuration',
-      items: [{ path: '/settings', icon: Settings, label: 'Shipping, payments & store' }],
+      heading: 'Stores',
+      items: [{ path: '/settings', icon: Settings, label: 'Configuration' }],
     },
   ];
 

@@ -8,7 +8,7 @@ import AdminCategories from './pages/admin/AdminCategories';
 import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminLandingPages from './pages/admin/AdminLandingPages';
-import AdminStoreSettings from './pages/admin/AdminStoreSettings';
+import AdminConfiguration from './pages/admin/AdminConfiguration';
 import AdminHeaderFooter from './pages/admin/AdminHeaderFooter';
 import AdminLogin from './pages/admin/AdminLogin';
 import NotFound from './pages/NotFound';
@@ -36,7 +36,7 @@ export const router = createBrowserRouter([
           { path: 'reviews', Component: AdminReviews },
           { path: 'header-footer', Component: AdminHeaderFooter },
           { path: 'pages', Component: AdminLandingPages },
-          { path: 'settings', Component: AdminStoreSettings },
+          { path: 'settings', Component: AdminConfiguration },
         ],
       },
         ],
