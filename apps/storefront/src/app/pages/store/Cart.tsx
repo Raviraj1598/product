@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router';
+import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { checkoutTotals, primaryShippingMethodId, useStore } from '@boutique/shared';
 export default function Cart() {
   const { cart, products, settings, removeFromCart, updateCartQuantity } = useStore();

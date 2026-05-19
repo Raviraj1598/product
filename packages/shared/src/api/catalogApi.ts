@@ -2,6 +2,7 @@ import type {
   BuiltPage,
   Category,
   Coupon,
+  Customer,
   Order,
   Product,
   Review,
@@ -15,6 +16,7 @@ import { normalizeBuiltPages } from '../cms/normalizeBuiltPages';
 export interface ServerCatalog {
   products: Product[];
   categories: Category[];
+  customers: Customer[];
   orders: Order[];
   reviews: Review[];
   coupons: Coupon[];
@@ -36,16 +38,21 @@ export function isAdminCatalogClient(): boolean {
 
 const CATALOG_READ_PATH = isAdminCatalogClient() ? '/api/admin/catalog' : '/api/store/catalog';
 
+/** Legacy automation header — prefer session cookie from `/api/auth/login`. */
 function adminHeaders(): Record<string, string> {
   const token = import.meta.env.VITE_ADMIN_API_TOKEN as string | undefined;
   if (token) return { 'x-admin-token': token };
   return {};
 }
 
+function adminFetchInit(): RequestInit {
+  if (!isAdminCatalogClient()) return {};
+  return { credentials: 'include', headers: adminHeaders() };
+}
+
 export async function fetchCatalog(): Promise<ServerCatalog> {
-  const res = await fetch(`${apiBase()}${CATALOG_READ_PATH}`, {
-    headers: isAdminCatalogClient() ? { ...adminHeaders() } : undefined,
-  });
+  const res = await fetch(`${apiBase()}${CATALOG_READ_PATH}`, adminFetchInit());
+  if (res.status === 401) throw new Error('AUTH_REQUIRED');
   if (!res.ok) throw new Error(`Catalog fetch failed: ${res.status}`);
   const raw = (await res.json()) as Partial<ServerCatalog>;
   const incomingCats = Array.isArray(raw.categories) ? (raw.categories as Category[]) : defaultCategories;
@@ -53,6 +60,7 @@ export async function fetchCatalog(): Promise<ServerCatalog> {
   return {
     products: raw.products ?? [],
     categories: hydrateCategories(incomingCats),
+    customers: raw.customers ?? [],
     orders: raw.orders ?? [],
     reviews: raw.reviews ?? [],
     coupons: raw.coupons ?? [],
@@ -64,26 +72,18 @@ export async function fetchCatalog(): Promise<ServerCatalog> {
 export async function putCatalog(slice: ServerCatalog): Promise<void> {
   const res = await fetch(`${apiBase()}/api/admin/catalog`, {
     method: 'PUT',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...adminHeaders() },
     body: JSON.stringify({
       ...slice,
       settings: mergeStoreSettings(slice.settings),
     }),
   });
+  if (res.status === 401) throw new Error('AUTH_REQUIRED');
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Catalog save failed: ${res.status} ${err}`);
   }
 }
 
-export async function postOrder(order: Order): Promise<void> {
-  const res = await fetch(`${apiBase()}/api/orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ order }),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Order failed: ${res.status} ${err}`);
-  }
-}
+export { postOrder, type PlaceOrderResult } from './customerApi';

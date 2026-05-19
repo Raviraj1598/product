@@ -1,13 +1,13 @@
 import { RouterProvider } from 'react-router';
-import { StoreProvider } from '@boutique/shared';
+import { AuthProvider } from './auth/AuthContext';
 import { router } from './routes';
 import { Toaster } from 'sonner';
 
 export default function App() {
   return (
-    <StoreProvider>
+    <AuthProvider>
       <RouterProvider router={router} />
       <Toaster position="top-right" richColors />
-    </StoreProvider>
+    </AuthProvider>
   );
 }

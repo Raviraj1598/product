@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useStore } from '@boutique/shared';
-import { ChevronDown, ChevronUp, Search, Filter, Package2, Truck } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Package2, Truck, Printer } from 'lucide-react';
 import { Order } from '@boutique/shared';
 import { toast } from 'sonner';
+import { OrderInvoice } from '../../components/OrderInvoice';
 
 export default function AdminOrders() {
   const { orders, setOrders, products } = useStore();
@@ -36,10 +37,36 @@ export default function AdminOrders() {
     toast.success('Tracking number added!');
   };
 
+  const printInvoice = (orderId: string) => {
+    const prev = document.title;
+    document.title = `Invoice ${orderId}`;
+    const node = document.getElementById(`invoice-${orderId}`);
+    if (!node) {
+      toast.error('Open order details first');
+      return;
+    }
+    const w = window.open('', '_blank', 'width=800,height=900');
+    if (!w) {
+      toast.error('Allow pop-ups to print invoice');
+      return;
+    }
+    w.document.write(`<!DOCTYPE html><html><head><title>Invoice</title>
+      <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111} table{width:100%;border-collapse:collapse} th,td{border-bottom:1px solid #eee;padding:8px;text-align:left}</style>
+      </head><body>${node.innerHTML}</body></html>`);
+    w.document.close();
+    w.focus();
+    w.print();
+    w.close();
+    document.title = prev;
+  };
+
   const filteredOrders = orders.filter((order) => {
-    const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.customerEmail.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      order.id.toLowerCase().includes(q) ||
+      (order.invoiceNumber?.toLowerCase().includes(q) ?? false) ||
+      order.customerName.toLowerCase().includes(q) ||
+      order.customerEmail.toLowerCase().includes(q);
     const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -93,7 +120,9 @@ export default function AdminOrders() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-4 mb-2">
-                        <h3 className="font-semibold">Order #{order.id.slice(0, 8)}</h3>
+                        <h3 className="font-semibold">
+                          {order.invoiceNumber ?? `Order #${order.id.slice(0, 8)}`}
+                        </h3>
                         <select
                           value={order.status}
                           onChange={(e) => {
@@ -284,6 +313,21 @@ export default function AdminOrders() {
                           </tr>
                         </tfoot>
                       </table>
+                    </div>
+
+                    <div className="mt-8 flex items-center justify-between gap-4">
+                      <h4 className="font-medium">Invoice</h4>
+                      <button
+                        type="button"
+                        onClick={() => printInvoice(order.id)}
+                        className="inline-flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-white text-sm"
+                      >
+                        <Printer className="w-4 h-4" />
+                        Print invoice
+                      </button>
+                    </div>
+                    <div className="mt-3 p-4 bg-white rounded-lg border">
+                      <OrderInvoice order={order} />
                     </div>
                   </div>
                 )}

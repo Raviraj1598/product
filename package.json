@@ -14,11 +14,14 @@
     "dev:admin": "npm run dev -w @boutique/admin",
     "dev:server": "tsx watch server/index.ts",
     "build": "npm run build -w @boutique/storefront && npm run build -w @boutique/admin",
-    "start:server": "tsx server/index.ts"
+    "start:server": "tsx server/index.ts",
+    "seed:admin": "tsx server/seed-admin.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.10.0",
+    "cookie": "^1.1.1",
     "cors": "2.8.5",
+    "dotenv": "^17.4.2",
     "express": "5.1.0",
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.1.0",
@@ -26,6 +29,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/cookie": "^0.6.0",
     "@types/express": "5.0.3",
     "@types/node": "22.15.31",
     "concurrently": "9.1.2"

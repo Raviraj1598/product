@@ -24,19 +24,28 @@ Envelope shape (mirrors `@boutique/shared` types):
 
 | Route | Behaviour |
 | --- | --- |
-| `GET /api/store/catalog` & `GET /api/catalog` | **Public storefront read** · rate limited (`PUBLIC_CATALOG_RATE_LIMIT_MAX`). Strips orders, sanitises coupons (`usageRemaining` only), returns **published CMS pages**. |
-| `GET /PUT /api/admin/catalog` | **Admin surface** · full dataset · rate limited (`ADMIN_CATALOG_RATE_LIMIT_MAX`). **`ADMIN_API_SECRET` required whenever `NODE_ENV=production`**; header `x-admin-token` validated with **SHA-256 + timing-safe equality** against the secret hash. Omitting secret in production returns `503`. |
-| `POST /api/orders` | **Public checkout** · rate limited (`express-rate-limit`, tunable via `ORDER_RATE_LIMIT_MAX`). |
-| `PUT /api/catalog` legacy | **`410 Gone`** — clients must migrate to `/api/admin/catalog`. |
+| `POST /api/auth/login` | Email + password → **httpOnly session cookie** (`boutique_admin_session`). Rate limited (`LOGIN_RATE_LIMIT_MAX`). |
+| `GET /api/auth/me` | Returns signed-in admin profile or `401`. |
+| `POST /api/auth/logout` | Clears session cookie. |
+| `GET /api/store/catalog` & `GET /api/catalog` | **Public storefront read** · rate limited. Strips orders, sanitises coupons, returns **published CMS pages** only. |
+| `GET /PUT /api/admin/catalog` | **Admin surface** · requires **valid session** (or legacy `x-admin-token` when `ADMIN_API_SECRET` is set). |
+| `POST /api/orders` | **Public checkout** · rate limited. |
+| `PUT /api/catalog` legacy | **`410 Gone`** — use session auth + `/api/admin/catalog`. |
+
+### Admin accounts (SQLite)
+
+Tables `admin_users` and `admin_sessions` live in the same `catalog.db` file.
+
+**First boot:** if no users exist, the API seeds one account from `ADMIN_EMAIL` + `ADMIN_PASSWORD` (password must be ≥ 8 characters). Change the password after deploy by updating the hash in DB or re-seeding in dev.
 
 ### Client apps
 
 | App | Behaviour |
 | --- | --- |
-| Storefront (Vite) | `__ADMIN_BUILD__=false` → reads `/api/store/catalog`, never `PUT`s the catalog envelope. Cart & wishlists stay browser-local. |
-| Admin (Vite) | `__ADMIN_BUILD__=true` → reads/writes `/api/admin/catalog`; debounced PUT requires `VITE_ADMIN_API_TOKEN` aligning with backend secret. |
+| Storefront (Vite) | Public catalog only; no admin session. |
+| Admin (Vite) | `/login` → `POST /api/auth/login` with **`credentials: 'include'`** (Vite dev proxy keeps cookies same-site). Protected routes load catalog only after auth. **Do not embed secrets in `VITE_*` builds.** |
 
-**Important**: The admin SPA embeds `VITE_*` at build time, so anyone with the deployed admin bundle URL can theoretically extract that token unless you additionally protect the admin hostname (VPN, SSO, Basic Auth at the edge, or IP allowlist). Treat **`ADMIN_API_SECRET` as gatekeeping edit access**, not a substitute for securing who can load the admin app.
+**Optional automation:** set `ADMIN_API_SECRET` and send header `x-admin-token` on admin catalog routes (CI/scripts). Human admins should use login + cookie.
 
 ### Stack hardening (Express)
 

@@ -11,6 +11,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import {
   Product,
   Category,
+  Customer,
   Order,
   CartItem,
   Review,
@@ -34,6 +35,8 @@ interface StoreContextType {
   setProducts: (products: Product[] | ((prev: Product[]) => Product[])) => void;
   categories: Category[];
   setCategories: (categories: Category[] | ((prev: Category[]) => Category[])) => void;
+  customers: Customer[];
+  setCustomers: (customers: Customer[] | ((prev: Customer[]) => Customer[])) => void;
   orders: Order[];
   setOrders: (orders: Order[] | ((prev: Order[]) => Order[])) => void;
   cart: CartItem[];
@@ -58,7 +61,7 @@ interface StoreContextType {
   /** True after catalog has been fetched from API at least once (success or fallback). */
   catalogReady: boolean;
   reloadCatalogFromServer: () => Promise<void>;
-  submitOrderToServer: (order: Order) => Promise<void>;
+  submitOrderToServer: (order: Order) => Promise<{ orderId?: string; invoiceNumber?: string }>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -66,6 +69,7 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(() => [...defaultProducts]);
   const [categories, setCategories] = useState<Category[]>(() => hydrateCategories([...defaultCategories]));
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [reviews, setReviews] = useState<Review[]>(() => [...defaultReviews]);
   const [coupons, setCoupons] = useState<Coupon[]>(() => [...defaultCoupons]);
@@ -89,6 +93,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const data = await fetchCatalog();
     setProducts(data.products);
     setCategories(data.categories);
+    setCustomers(data.customers ?? []);
     setOrders(data.orders);
     setReviews(data.reviews);
     setCoupons(data.coupons);
@@ -130,6 +135,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       putCatalog({
         products,
         categories,
+        customers,
         orders,
         reviews,
         coupons,
@@ -141,7 +147,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }, 480);
 
     return () => window.clearTimeout(t);
-  }, [products, categories, orders, reviews, coupons, settings, builtPages, catalogSyncEnabled]);
+  }, [products, categories, customers, orders, reviews, coupons, settings, builtPages, catalogSyncEnabled]);
 
   const addToCart = (productId: string, quantity: number, selectedVariants?: Record<string, string>) => {
     setCart((prevCart) => {
@@ -225,9 +231,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const submitOrderToServer = async (order: Order) => {
-    await postOrder(order);
+    const result = await postOrder(order);
     bumpPersistGeneration();
-    await reloadCatalogFromServer();
+    if (isAdminCatalogClient()) {
+      await reloadCatalogFromServer();
+    }
+    return { orderId: result.orderId, invoiceNumber: result.invoiceNumber };
   };
 
   return (
@@ -237,6 +246,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setProducts,
         categories,
         setCategories,
+        customers,
+        setCustomers,
         orders,
         setOrders,
         cart,

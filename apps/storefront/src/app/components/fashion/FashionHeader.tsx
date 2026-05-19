@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router';
 import { Search, Heart, ShoppingBag, User } from 'lucide-react';
+import { useCustomerAuth } from '../../auth/CustomerAuthContext';
 import { motion } from 'motion/react';
 import { mergeStoreSettings, resolveCategorySlug, useStore } from '@boutique/shared';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ export function FashionHeader() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { cart, wishlist, settings, categories, products } = useStore();
+  const { user, status } = useCustomerAuth();
   const merged = mergeStoreSettings(settings);
   const [q, setQ] = useState('');
 
@@ -194,14 +196,16 @@ export function FashionHeader() {
                 )}
               </Link>
 
-              <button
-                type="button"
+              <Link
+                to={user ? '/account' : '/login'}
                 className="hidden sm:flex p-2 hover:bg-[var(--luxury-cream)] rounded-full transition-colors"
-                title="Sign in coming soon"
-                onClick={() => toast.message('Accounts coming soon')}
+                title={user ? `Account (${user.name})` : 'Sign in'}
               >
                 <User className="w-5 h-5 text-[var(--luxury-maroon)]" />
-              </button>
+                {status === 'authenticated' && user && (
+                  <span className="sr-only">Signed in as {user.name}</span>
+                )}
+              </Link>
 
               <Link
                 to="/cart"

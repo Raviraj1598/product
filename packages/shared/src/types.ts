@@ -72,8 +72,26 @@ export interface Coupon {
   createdAt: string;
 }
 
+/** Registered storefront shopper (profile in catalog; password in server SQLite). */
+export interface Customer {
+  id: string;
+  email: string;
+  name: string;
+  phone: string;
+  addressLine1: string;
+  city: string;
+  zipCode: string;
+  country: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Order {
   id: string;
+  /** Links order to a registered customer when checkout was authenticated. */
+  customerId?: string;
+  /** Human-readable invoice reference shown on receipts. */
+  invoiceNumber?: string;
   items: Array<{
     productId: string;
     productName: string;

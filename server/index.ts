@@ -1,65 +1,42 @@
-import crypto from 'node:crypto';
+import './loadEnv.js';
 
 import cors from 'cors';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
+import { fileURLToPath } from 'url';
+import path from 'path';
 
 import type { BuiltPage, Order, StoreSettings } from '../packages/shared/src/types';
 import { normalizeBuiltPages } from '../packages/shared/src/cms/normalizeBuiltPages';
 import { mergeStoreSettings } from '../packages/shared/src/catalog/storeSettings';
-import { fileURLToPath } from 'url';
-import path from 'path';
-
+import { createRequireAdmin } from './auth/middleware';
+import {
+  clearSessionCookie,
+  loginWithPassword,
+  logoutSession,
+  resolveAdminUser,
+  setSessionCookie,
+} from './auth/session';
 import type { CatalogJson } from './catalogService';
 import { seedCatalog } from './catalogService';
 import { couponsSafeForStorefront, createCatalogRepository } from './catalogRepository';
+import { createAuthRepository } from './authRepository';
+import { createCustomerRepository } from './customerRepository';
+import { mountCustomerAuthRoutes, attachCustomerToOrder } from './customerAuth/routes';
+import { resolveCustomerId } from './customerAuth/session';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = Number(process.env.PORT) || 3001;
-const ADMIN_SECRET = process.env.ADMIN_API_SECRET?.trim();
-
 const corsOrigins = process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean);
-
 const JSON_LIMIT_MAX = process.env.CATALOG_JSON_LIMIT?.trim() || '5mb';
 const isProduction = process.env.NODE_ENV === 'production';
 
-/** Hash before comparison so timings do not leak token length hints. */
-function adminTokenMatches(secret: string, presentedRaw: unknown): boolean {
-  if (typeof presentedRaw !== 'string' || !presentedRaw.trim()) return false;
-  const presented = presentedRaw.trim();
-  try {
-    const hSecret = crypto.createHash('sha256').update(secret, 'utf8').digest();
-    const hTok = crypto.createHash('sha256').update(presented, 'utf8').digest();
-    return crypto.timingSafeEqual(hSecret, hTok);
-  } catch {
-    return false;
-  }
-}
-
 const repo = createCatalogRepository({ dirname: __dirname });
-
-/** Admin routes require ADMIN_API_SECRET in production; in dev omitting it allows unsecured admin (explicit). */
-function enforceAdminCatalog(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (!ADMIN_SECRET) {
-    if (isProduction) {
-      console.error('[catalog] Set ADMIN_API_SECRET to enable admin APIs');
-      res.status(503).json({ error: 'Admin API disabled until ADMIN_API_SECRET is configured' });
-      return;
-    }
-    console.warn('[catalog] ADMIN_API_SECRET missing — catalog admin routes accept any caller (development only)');
-    next();
-    return;
-  }
-
-  const token = req.headers['x-admin-token'];
-  if (!adminTokenMatches(ADMIN_SECRET, token)) {
-    res.status(403).json({ error: 'Forbidden' });
-    return;
-  }
-  next();
-}
+const authRepo = createAuthRepository({ dirname: __dirname });
+const customerRepo = createCustomerRepository({ dirname: __dirname });
+const requireAdmin = createRequireAdmin(authRepo);
 
 function readFullCatalog(): CatalogJson {
   try {
@@ -96,7 +73,6 @@ app.disable('x-powered-by');
 app.use(
   helmet({
     contentSecurityPolicy: false,
-    /** JSON REST API consumed cross-origin via CORS; default same-origin CORP blocks some fetch modes. */
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   }),
 );
@@ -118,6 +94,11 @@ app.use(
 );
 app.use(express.json({ limit: JSON_LIMIT_MAX }));
 
+mountCustomerAuthRoutes(app, customerRepo, {
+  read: readFullCatalog,
+  write: persistFullCatalog,
+});
+
 const catalogReadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: Number(process.env.PUBLIC_CATALOG_RATE_LIMIT_MAX) || 600,
@@ -128,12 +109,52 @@ const adminCatalogLimiter = rateLimit({
   limit: Number(process.env.ADMIN_CATALOG_RATE_LIMIT_MAX) || 200,
 });
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: Number(process.env.LOGIN_RATE_LIMIT_MAX) || 20,
+  message: { error: 'Too many login attempts. Try again later.' },
+});
+
 const orderLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: Number(process.env.ORDER_RATE_LIMIT_MAX) || 80,
 });
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, storage: 'sqlite' }));
+app.get('/api/health', (_req, res) => res.json({ ok: true, storage: 'sqlite', auth: 'session' }));
+
+app.get('/api/auth/me', (req, res) => {
+  const user = resolveAdminUser(req, authRepo);
+  if (!user) {
+    res.status(401).json({ error: 'Not signed in', code: 'AUTH_REQUIRED' });
+    return;
+  }
+  res.json({ user });
+});
+
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+
+  if (!email.trim() || !password) {
+    res.status(400).json({ error: 'Email and password are required' });
+    return;
+  }
+
+  const result = await loginWithPassword(authRepo, email, password);
+  if ('error' in result) {
+    res.status(401).json({ error: result.error });
+    return;
+  }
+
+  setSessionCookie(res, result.token);
+  res.json({ user: result.user });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  logoutSession(authRepo, req);
+  clearSessionCookie(res);
+  res.json({ ok: true });
+});
 
 /** Public storefront read — no draft CMS pages / no historical orders data. */
 app.get(
@@ -150,8 +171,8 @@ app.get(
   },
 );
 
-/** Authenticated payload for the admin SPA (requires ADMIN_API_SECRET in production). */
-app.get('/api/admin/catalog', adminCatalogLimiter, enforceAdminCatalog, (_req, res) => {
+/** Authenticated payload for the admin SPA (session cookie or legacy token). */
+app.get('/api/admin/catalog', adminCatalogLimiter, requireAdmin, (_req, res) => {
   try {
     res.json(readFullCatalog());
   } catch (e) {
@@ -161,7 +182,7 @@ app.get('/api/admin/catalog', adminCatalogLimiter, enforceAdminCatalog, (_req, r
 });
 
 /** Replace catalog envelope (writes SQLite transaction). */
-app.put('/api/admin/catalog', adminCatalogLimiter, enforceAdminCatalog, (req, res) => {
+app.put('/api/admin/catalog', adminCatalogLimiter, requireAdmin, (req, res) => {
   try {
     const current = readFullCatalog();
     const body = req.body as Partial<CatalogJson>;
@@ -177,6 +198,7 @@ app.put('/api/admin/catalog', adminCatalogLimiter, enforceAdminCatalog, (req, re
     const merged: CatalogJson = {
       products: Array.isArray(body.products) ? body.products : current.products,
       categories: Array.isArray(body.categories) ? body.categories : current.categories,
+      customers: Array.isArray(body.customers) ? body.customers : current.customers,
       orders: Array.isArray(body.orders) ? body.orders : current.orders,
       reviews: Array.isArray(body.reviews) ? body.reviews : current.reviews,
       coupons: Array.isArray(body.coupons) ? body.coupons : current.coupons,
@@ -197,7 +219,7 @@ app.put('/api/admin/catalog', adminCatalogLimiter, enforceAdminCatalog, (req, re
 /** Legacy unsecured PUT retained as explicit redirect hint */
 app.put('/api/catalog', (_req, res) => {
   res.status(410).json({
-    error: 'This endpoint moved. PUT /api/admin/catalog with ADMIN_API_SECRET and x-admin-token header.',
+    error: 'This endpoint moved. Sign in via POST /api/auth/login and use PUT /api/admin/catalog with session cookie.',
   });
 });
 
@@ -209,9 +231,11 @@ app.post('/api/orders', orderLimiter, (req, res) => {
     }
 
     const catalog = readFullCatalog();
-    catalog.orders.push(order);
+    const customerId = resolveCustomerId(req, customerRepo);
+    const enriched = attachCustomerToOrder(order, customerId, catalog);
+    catalog.orders.push(enriched);
 
-    const code = order.couponCode;
+    const code = enriched.couponCode;
     if (code) {
       const upper = code.toUpperCase();
       const couponIndex = catalog.coupons.findIndex(
@@ -224,7 +248,11 @@ app.post('/api/orders', orderLimiter, (req, res) => {
     }
 
     persistFullCatalog(catalog);
-    res.status(201).json({ ok: true });
+    res.status(201).json({
+      ok: true,
+      orderId: enriched.id,
+      invoiceNumber: enriched.invoiceNumber,
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Could not place order' });
@@ -233,7 +261,7 @@ app.post('/api/orders', orderLimiter, (req, res) => {
 
 const server = app.listen(PORT, () => {
   console.log(
-    `[catalog] API http://127.0.0.1:${PORT} · SQLite WAL · helmet · rate limits (catalog read / admin / orders)`,
+    `[catalog] API http://127.0.0.1:${PORT} · SQLite · session auth · rate limits`,
   );
 });
 
@@ -241,6 +269,8 @@ function shutdown(signal: NodeJS.Signals) {
   console.log(`[catalog] ${signal}: closing HTTP + SQLite`);
   server.close(() => {
     try {
+      authRepo.close();
+      customerRepo.close();
       repo.close();
     } catch (e) {
       console.error(e);

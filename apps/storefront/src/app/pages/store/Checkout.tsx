@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import {
   checkoutTotals,
   coercePaymentGateway,
@@ -10,13 +10,16 @@ import {
 import type { CheckoutPaymentGateway, Order } from '@boutique/shared';
 import { CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCustomerAuth } from '../../auth/CustomerAuthContext';
 
 export default function Checkout() {
   const { cart, products, settings, clearCart, submitOrderToServer } = useStore();
+  const { user } = useCustomerAuth();
   const merged = mergeStoreSettings(settings);
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [placedInvoice, setPlacedInvoice] = useState<string | undefined>();
 
   const shippingLanes = merged.shippingMethods ?? [];
   const paymentLanes = merged.paymentMethods?.filter((p) => p.enabled) ?? [];
@@ -28,6 +31,19 @@ export default function Checkout() {
     const first = paymentLanes[0]?.id ?? 'cod';
     return coercePaymentGateway(first);
   });
+
+  useEffect(() => {
+    if (!user) return;
+    setFormData((prev) => ({
+      ...prev,
+      name: prev.name || user.name,
+      email: prev.email || user.email,
+      phone: prev.phone || user.phone,
+      address: prev.address || user.addressLine1,
+      city: prev.city || user.city,
+      zipCode: prev.zipCode || user.zipCode,
+    }));
+  }, [user]);
 
   useEffect(() => {
     const stillShip = shippingLanes.some((m) => m.id === shippingId);
@@ -129,10 +145,11 @@ export default function Checkout() {
     };
 
     try {
-      await submitOrderToServer(newOrder);
+      const result = await submitOrderToServer(newOrder);
       clearCart();
+      setPlacedInvoice(result.invoiceNumber);
       setOrderPlaced(true);
-      setTimeout(() => navigate('/'), 3200);
+      setTimeout(() => navigate(user ? '/account/orders' : '/'), 4200);
     } catch {
       toast.error('Could not place order. Make sure the store API is running (npm run dev).');
     } finally {
@@ -151,7 +168,24 @@ export default function Checkout() {
         <CheckCircle className="w-20 h-20 mx-auto mb-6 text-green-600" />
         <h1 className="text-3xl font-bold mb-4 text-[var(--boutique-primary)]">Order placed</h1>
         <p className="text-gray-600 mb-2">Thanks — fulfillment will follow shortly.</p>
-        <p className="text-sm text-gray-500 mb-8">Returning you to home…</p>
+        {placedInvoice && (
+          <p className="text-sm font-medium text-[var(--boutique-primary)] mb-2">Invoice: {placedInvoice}</p>
+        )}
+        <p className="text-sm text-gray-500 mb-4">
+          {user ? (
+            <Link to="/account/orders" className="underline">
+              View your orders
+            </Link>
+          ) : (
+            <>
+              <Link to="/register" className="underline">
+                Create an account
+              </Link>{' '}
+              to track this order.
+            </>
+          )}
+        </p>
+        <p className="text-sm text-gray-500 mb-8">Redirecting…</p>
       </div>
     );
   }

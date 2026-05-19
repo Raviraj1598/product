@@ -1,7 +1,10 @@
+export type { AdminUser, CustomerUser } from './types/auth';
+
 export type {
   ProductVariant,
   Product,
   Category,
+  Customer,
   Review,
   CartItem,
   Coupon,
@@ -54,6 +57,19 @@ export { PAGE_TEMPLATE_IDS, PAGE_TEMPLATE_META, createPageFromTemplate } from '.
 
 export type { ServerCatalog } from './api/catalogApi';
 export { fetchCatalog, putCatalog, postOrder, isAdminCatalogClient } from './api/catalogApi';
+export type { PlaceOrderResult } from './api/customerApi';
+export { fetchAuthMe, loginAdmin, logoutAdmin } from './api/authApi';
+export {
+  fetchCustomerMe,
+  registerCustomer,
+  loginCustomer,
+  logoutCustomer,
+  updateCustomerProfile,
+  fetchMyOrders,
+  fetchMyOrder,
+} from './api/customerApi';
+
+export { formatInvoiceNumber } from './utils/invoice';
 
 export { defaultCategories, defaultProducts, defaultReviews, defaultCoupons } from './catalog/seedCatalog';
 export {

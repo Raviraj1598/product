@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router';
 import {
   LayoutDashboard,
   Package,
@@ -10,14 +10,24 @@ import {
   Settings,
   Layers,
   PanelTop,
+  LogOut,
+  Users,
 } from 'lucide-react';
 import { storefrontHref } from '../lib/externalUrls';
+import { useAuth } from '../auth/AuthContext';
 
 type NavItem = { path: string; icon: typeof LayoutDashboard; label: string };
 type NavSection = { heading: string; items: NavItem[] };
 
 export default function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   const sections: NavSection[] = [
     {
@@ -34,7 +44,8 @@ export default function AdminLayout() {
     {
       heading: 'Commerce',
       items: [
-        { path: '/orders', icon: ShoppingBag, label: 'Orders' },
+        { path: '/orders', icon: ShoppingBag, label: 'Orders & invoices' },
+        { path: '/customers', icon: Users, label: 'Customers' },
         { path: '/coupons', icon: Tag, label: 'Coupons' },
         { path: '/reviews', icon: MessageSquare, label: 'Reviews' },
       ],
@@ -48,7 +59,7 @@ export default function AdminLayout() {
     },
     {
       heading: 'Configuration',
-      items: [{ path: '/settings', icon: Settings, label: 'Store settings' }],
+      items: [{ path: '/settings', icon: Settings, label: 'Shipping, payments & store' }],
     },
   ];
 
@@ -62,7 +73,9 @@ export default function AdminLayout() {
       <aside className="w-64 bg-gray-900 text-white flex flex-col shrink-0">
         <div className="p-6 border-b border-gray-800">
           <h1 className="text-xl font-bold tracking-tight">Boutique Admin</h1>
-          <p className="text-xs text-gray-500 mt-1">Catalog &amp; storefront</p>
+          <p className="text-xs text-gray-500 mt-1 truncate" title={user?.email}>
+            {user?.displayName || user?.email || 'Signed in'}
+          </p>
         </div>
 
         <nav className="flex-1 p-4 overflow-y-auto">
@@ -98,7 +111,7 @@ export default function AdminLayout() {
           </div>
         </nav>
 
-        <div className="p-4 border-t border-gray-800">
+        <div className="p-4 border-t border-gray-800 space-y-1">
           <a
             href={storefrontHref('/')}
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-sm"
@@ -106,6 +119,14 @@ export default function AdminLayout() {
             <ArrowLeft className="w-5 h-5" />
             <span>View storefront</span>
           </a>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-sm"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Sign out</span>
+          </button>
         </div>
       </aside>
 
