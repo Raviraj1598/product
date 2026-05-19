@@ -1,0 +1,117 @@
+import { Outlet, Link, useLocation } from 'react-router';
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingBag,
+  FolderTree,
+  Tag,
+  ArrowLeft,
+  MessageSquare,
+  Settings,
+  Layers,
+  PanelTop,
+} from 'lucide-react';
+import { storefrontHref } from '../lib/externalUrls';
+
+type NavItem = { path: string; icon: typeof LayoutDashboard; label: string };
+type NavSection = { heading: string; items: NavItem[] };
+
+export default function AdminLayout() {
+  const location = useLocation();
+
+  const sections: NavSection[] = [
+    {
+      heading: 'Overview',
+      items: [{ path: '/', icon: LayoutDashboard, label: 'Dashboard' }],
+    },
+    {
+      heading: 'Catalog',
+      items: [
+        { path: '/products', icon: Package, label: 'Products' },
+        { path: '/categories', icon: FolderTree, label: 'Categories' },
+      ],
+    },
+    {
+      heading: 'Commerce',
+      items: [
+        { path: '/orders', icon: ShoppingBag, label: 'Orders' },
+        { path: '/coupons', icon: Tag, label: 'Coupons' },
+        { path: '/reviews', icon: MessageSquare, label: 'Reviews' },
+      ],
+    },
+    {
+      heading: 'Storefront',
+      items: [
+        { path: '/header-footer', icon: PanelTop, label: 'Header & footer' },
+        { path: '/pages', icon: Layers, label: 'Pages' },
+      ],
+    },
+    {
+      heading: 'Configuration',
+      items: [{ path: '/settings', icon: Settings, label: 'Store settings' }],
+    },
+  ];
+
+  const isNavActive = (navPath: string) =>
+    navPath === '/'
+      ? location.pathname === '/'
+      : location.pathname === navPath || location.pathname.startsWith(`${navPath}/`);
+
+  return (
+    <div className="min-h-screen flex">
+      <aside className="w-64 bg-gray-900 text-white flex flex-col shrink-0">
+        <div className="p-6 border-b border-gray-800">
+          <h1 className="text-xl font-bold tracking-tight">Boutique Admin</h1>
+          <p className="text-xs text-gray-500 mt-1">Catalog &amp; storefront</p>
+        </div>
+
+        <nav className="flex-1 p-4 overflow-y-auto">
+          <div className="space-y-6">
+            {sections.map((section) => (
+              <div key={section.heading}>
+                <p className="px-4 mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
+                  {section.heading}
+                </p>
+                <ul className="space-y-1">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = isNavActive(item.path);
+                    return (
+                      <li key={item.path}>
+                        <Link
+                          to={item.path}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                            isActive
+                              ? 'bg-gray-800 text-white'
+                              : 'text-gray-400 hover:bg-gray-800/80 hover:text-white'
+                          }`}
+                        >
+                          <Icon className="w-5 h-5 shrink-0 opacity-90" />
+                          <span>{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </nav>
+
+        <div className="p-4 border-t border-gray-800">
+          <a
+            href={storefrontHref('/')}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-sm"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>View storefront</span>
+          </a>
+        </div>
+      </aside>
+
+      <main className="flex-1 bg-gray-50 min-w-0">
+        <Outlet />
+      </main>
+    </div>
+  );
+}

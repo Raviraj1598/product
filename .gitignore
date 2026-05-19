@@ -39,8 +39,9 @@ vite.svg
 # Testing
 coverage/
 
-# Temporary Files
-tmp/
+# Store API persisted catalog (development)
+/server/data/
+
 temp/
 
 # ESLint Cache
