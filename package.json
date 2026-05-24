@@ -14,7 +14,9 @@
     "dev:admin": "npm run dev -w @boutique/admin",
     "dev:server": "tsx watch server/index.ts",
     "build": "npm run build -w @boutique/storefront && npm run build -w @boutique/admin",
+    "build:prod": "npm run build",
     "start:server": "tsx server/index.ts",
+    "start:prod": "tsx server/index.ts",
     "seed:admin": "tsx server/seed-admin.ts"
   },
   "dependencies": {
