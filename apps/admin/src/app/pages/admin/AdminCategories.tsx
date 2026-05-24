@@ -10,6 +10,7 @@ import {
 } from '@boutique/shared';
 import { GripVertical, ImageIcon, Layers, Package, Plus, Pencil, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { ImageUrlOrUploadField } from '../../components/ImageUrlOrUploadField';
 
 const fld =
   'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black text-sm bg-white';
@@ -362,15 +363,15 @@ export default function AdminCategories() {
                   onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
                 />
               </label>
-              <label className="block">
-                <span className="text-sm font-semibold text-gray-800">Banner / card image URL</span>
-                <input
-                  className={`${fld} mt-2`}
-                  placeholder="https://..."
+              <div className="block">
+                <span className="text-sm font-semibold text-gray-800">Banner / card image</span>
+                <ImageUrlOrUploadField
+                  className="mt-2"
+                  inputClassName={fld}
                   value={draft.image}
-                  onChange={(e) => setDraft((d) => ({ ...d, image: e.target.value }))}
+                  onChange={(image) => setDraft((d) => ({ ...d, image }))}
                 />
-              </label>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <label className="block">
                   <span className="text-sm font-semibold text-gray-800">Sort #</span>

@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
-import { Sparkles } from 'lucide-react';
-import { adminSiteHref } from '../../lib/externalUrls';
+import { Gift } from 'lucide-react';
+import { Link } from 'react-router';
 
 export function FashionTailoringCta() {
   return (
@@ -15,16 +15,16 @@ export function FashionTailoringCta() {
               className="p-12 lg:p-16 text-white flex flex-col justify-center"
             >
               <div className="inline-block px-4 py-2 bg-white/20 rounded-full mb-6 self-start">
-                <Sparkles className="w-5 h-5 inline mr-2 align-text-bottom" aria-hidden />
-                Alterations concierge
+                <Gift className="w-5 h-5 inline mr-2 align-text-bottom" aria-hidden />
+                Gift concierge
               </div>
-              <h2 className="text-4xl md:text-5xl mb-6 leading-tight font-bold">Tailored to perfection</h2>
+              <h2 className="text-4xl md:text-5xl mb-6 leading-tight font-bold">Not sure what to give?</h2>
               <p className="text-xl text-white/90 mb-8 leading-relaxed">
-                Prefer a stitched fit? Reach out via admin contact flow or book a stylist—inventory and sizing still
-                come from your live product catalog on the `/shop` page.
+                Browse our curated collections by occasion, recipient, or budget. Mix in-store gifts with affiliate
+                partner picks—all managed from your admin panel.
               </p>
               <div className="space-y-4 mb-8">
-                {['Measurements & consultations', 'Fabric & motif guidance', '7–14 day turnaround estimate'].map(
+                {['Gifts by occasion & recipient', 'In-store + affiliate hybrid catalog', 'Personalised gift wrap on eligible orders'].map(
                   (label) => (
                     <div key={label} className="flex items-center gap-3">
                       <div className="w-6 h-6 bg-[var(--luxury-gold)] rounded-full flex items-center justify-center shrink-0">
@@ -35,12 +35,12 @@ export function FashionTailoringCta() {
                   ),
                 )}
               </div>
-              <a
-                href={adminSiteHref('/')}
+              <Link
+                to="/shop"
                 className="inline-block px-8 py-4 bg-white text-[var(--luxury-maroon)] rounded-full hover:bg-[var(--luxury-gold)] hover:text-white transition-all shadow-xl self-start text-center font-medium"
               >
-                Configure in admin
-              </a>
+                Explore gift guides
+              </Link>
             </motion.div>
 
             <motion.div
@@ -50,8 +50,8 @@ export function FashionTailoringCta() {
               className="relative h-full min-h-[400px] lg:min-h-0"
             >
               <img
-                src="https://images.unsplash.com/photo-1760287364328-e30221615f2e?w=1080&q=80&fit=max"
-                alt="Boutique styling"
+                src="https://images.unsplash.com/photo-1607083206869-4c7672f72a7a?w=1080&q=80&fit=max"
+                alt="Gift boxes and wrapping"
                 className="absolute inset-0 w-full h-full object-cover"
               />
             </motion.div>

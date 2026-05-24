@@ -1,13 +1,12 @@
 import { motion } from 'motion/react';
-import { Scissors, Sparkles, Package, Award } from 'lucide-react';
+import { Gift, Sparkles, Package, Award } from 'lucide-react';
 import { FashionHeroSplit } from '../../components/fashion/FashionHeroSplit';
 import { FashionProductCard } from '../../components/fashion/FashionProductCard';
-import { FashionCollectionBanner } from '../../components/fashion/FashionCollectionBanner';
+import { FashionCollectionSpotlight } from '../../components/fashion/FashionCollectionSpotlight';
 import { FashionNewsletter } from '../../components/fashion/FashionNewsletter';
 import { FashionTailoringCta } from '../../components/fashion/FashionTailoringCta';
 import { useMemo } from 'react';
-import { useStore, resolveCategorySlug } from '@boutique/shared';
-import type { Category } from '@boutique/shared';
+import { useStore } from '@boutique/shared';
 
 export default function FashionHome() {
   const { products, categories, settings } = useStore();
@@ -18,31 +17,29 @@ export default function FashionHome() {
         const wr = (b.rating || 0) - (a.rating || 0);
         return wr !== 0 ? wr : Number(b.featured) - Number(a.featured);
       })
-      .slice(0, 6);
+      .slice(0, 8);
   }, [products]);
-
-  const banners = useMemo(() => pairCategoriesForBanners(categories), [categories]);
 
   const features = [
     {
-      icon: Scissors,
-      title: 'Custom tailoring',
-      description: 'Alterations roadmap—pair with measurements at checkout milestones.',
+      icon: Gift,
+      title: 'Curated gift guides',
+      description: 'Occasion-ready picks for birthdays, anniversaries, and every celebration.',
     },
     {
       icon: Package,
-      title: 'Reliable fulfilment',
-      description: `Free shipping tiers from $${settings.freeShippingMin} before tax.`,
+      title: 'Gift wrap & dispatch',
+      description: `Complimentary wrap on orders over $${settings.freeShippingMin} before tax.`,
     },
     {
       icon: Award,
-      title: 'Premium quality',
-      description: 'Handpicked palettes, embroideries, and curated catalogs from admin.',
+      title: 'Partner picks',
+      description: 'Affiliate favourites from trusted stores—one click to shop externally.',
     },
     {
       icon: Sparkles,
-      title: 'Exclusive edits',
-      description: 'Feature drops directly from `/admin/products`.',
+      title: 'Fresh drops weekly',
+      description: 'New gift ideas added directly from admin—mix in-store and affiliate items.',
     },
   ];
 
@@ -50,42 +47,42 @@ export default function FashionHome() {
     <div className="min-h-screen bg-white">
       <FashionHeroSplit />
 
-      <section className="py-20 bg-gradient-to-b from-white to-[var(--luxury-cream)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <section className="py-10 md:py-12 bg-gradient-to-b from-white to-[var(--luxury-cream)]/40 border-b border-black/[0.04]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.08 }}
-                className="text-center"
+                transition={{ delay: index * 0.06 }}
+                className="text-center lg:text-left"
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[var(--luxury-maroon)] to-[var(--luxury-gold)] rounded-2xl mb-4 shadow-lg">
-                  <feature.icon className="w-8 h-8 text-white" aria-hidden />
+                <div className="inline-flex items-center justify-center w-11 h-11 bg-gradient-to-br from-[var(--luxury-maroon)] to-[var(--luxury-gold)] rounded-xl mb-3 shadow-md">
+                  <feature.icon className="w-5 h-5 text-white" aria-hidden />
                 </div>
-                <h3 className="text-lg font-semibold text-[var(--luxury-maroon)] mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-600">{feature.description}</p>
+                <h3 className="text-sm font-semibold text-[var(--luxury-maroon)] mb-1">{feature.title}</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">{feature.description}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="trending-picks" className="py-20 bg-[var(--luxury-cream)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold text-[var(--luxury-maroon)] mb-4">{settings.storefrontTitle}</h2>
-            <p className="text-gray-600 text-lg max-w-2xl mx-auto">{settings.storefrontSubtitle}</p>
-          </motion.div>
+      <section id="trending-picks" className="py-10 md:py-14 bg-[var(--luxury-cream)]/35">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 md:mb-10">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--luxury-gold)] font-semibold mb-2">
+              Shop the edit
+            </p>
+            <h2 className="text-2xl md:text-3xl font-bold text-[var(--luxury-maroon)] tracking-tight">
+              Trending gifts
+            </h2>
+            <p className="text-sm text-gray-600 mt-2 max-w-xl mx-auto">{settings.storefrontSubtitle}</p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
             {trending.map((product) => (
               <FashionProductCard key={product.id} product={product} />
             ))}
@@ -93,61 +90,10 @@ export default function FashionHome() {
         </div>
       </section>
 
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-24">
-          {banners.map((b, i) => (
-            <FashionCollectionBanner key={`${b.title}-${i}`} {...b} />
-          ))}
-        </div>
-      </section>
+      <FashionCollectionSpotlight settings={settings} categories={categories} />
 
       <FashionTailoringCta />
       <FashionNewsletter />
     </div>
   );
 }
-
-function pairCategoriesForBanners(categories: Category[]) {
-  const visible = categories.filter((c) => c.published !== false);
-  const withVisual = visible.filter((c) => (c.image && c.description) || c.description);
-  if (withVisual.length >= 2) {
-    return withVisual.slice(0, 2).map((c, idx) => ({
-      title: c.name,
-      subtitle: 'Collection spotlight',
-      description: c.description,
-      shopHref: `/shop?category=${encodeURIComponent(resolveCategorySlug(c))}`,
-      image:
-        c.image ||
-        [defaultBannerA, defaultBannerB][idx] ||
-        defaultBannerA,
-      reverse: idx % 2 === 1,
-    }));
-  }
-
-  return [
-    {
-      title: 'Festive rotations',
-      subtitle: 'Limited edition',
-      description:
-        'Mirror-work Chaniya silhouettes refreshed every season—see live availability on the `/shop` feed.',
-      image: defaultBannerA,
-      reverse: false,
-      shopHref: '/shop',
-    },
-    {
-      title: 'Bridal luxury',
-      subtitle: 'Signature couture',
-      description:
-        'Layer ornate lehengas with jewelry-ready palettes. Stock levels pull directly from admin inventory.',
-      image: defaultBannerB,
-      reverse: true,
-      shopHref: '/shop',
-    },
-  ];
-}
-
-const defaultBannerA =
-  'https://images.unsplash.com/photo-1774437897985-9a7f1b7867a8?w=1080&q=80&fit=max';
-
-const defaultBannerB =
-  'https://images.unsplash.com/photo-1654764746225-e63f5e90facd?w=1080&q=80&fit=max';

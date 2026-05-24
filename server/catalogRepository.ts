@@ -4,7 +4,14 @@ import path from 'path';
 
 import type { Coupon } from '../packages/shared/src/types';
 import type { CatalogJson } from './catalogService';
-import { catalogLegacyDefaultPath, normalizeParsedCatalog, readLegacyCatalogJsonSync } from './catalogService';
+import {
+  catalogLegacyDefaultPath,
+  normalizeParsedCatalog,
+  readLegacyCatalogJsonSync,
+} from './catalogService';
+import { mergeStoreSettings } from '../packages/shared/src/catalog/storeSettings';
+import { normalizeBuiltPages } from '../packages/shared/src/cms/normalizeBuiltPages';
+import { catalogNeedsDefaultSeed } from '../packages/shared/src/cms/catalogDefaults';
 
 const SCHEMA_VERSION = 1;
 
@@ -72,7 +79,23 @@ export function createCatalogRepository(options: {
   return {
     read() {
       const row = db.prepare(`SELECT json FROM catalog_snap WHERE id = 1`).get() as { json: string };
-      return normalizeParsedCatalog(JSON.parse(row.json));
+      const rawJson = JSON.parse(row.json) as unknown;
+      const rawRecord = typeof rawJson === 'object' && rawJson !== null ? (rawJson as Record<string, unknown>) : {};
+      const needsSeed = catalogNeedsDefaultSeed(
+        normalizeBuiltPages(rawRecord.builtPages),
+        mergeStoreSettings(
+          typeof rawRecord.settings === 'object' && rawRecord.settings !== null
+            ? (rawRecord.settings as Partial<import('../packages/shared/src/types').StoreSettings>)
+            : undefined,
+        ),
+      );
+      const next = normalizeParsedCatalog(rawJson);
+      if (needsSeed) {
+        db.prepare(`INSERT OR REPLACE INTO catalog_snap (id, json, updated_at) VALUES (1, ?, datetime('now'))`).run(
+          JSON.stringify(next),
+        );
+      }
+      return next;
     },
 
     write(next: CatalogJson) {

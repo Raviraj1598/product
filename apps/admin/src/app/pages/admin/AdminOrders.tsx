@@ -1,17 +1,38 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '@boutique/shared';
-import { ChevronDown, ChevronUp, Search, Package2, Truck, Printer } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Package2, Truck, Printer, ExternalLink, RefreshCw } from 'lucide-react';
 import { Order } from '@boutique/shared';
 import { toast } from 'sonner';
 import { OrderInvoice } from '../../components/OrderInvoice';
+import { cn } from '../../components/ui/utils';
+
+type OrdersView = 'store' | 'affiliate';
 
 export default function AdminOrders() {
-  const { orders, setOrders, products } = useStore();
+  const { orders, setOrders, products, affiliateReferrals, reloadCatalogFromServer } = useStore();
+  const [view, setView] = useState<OrdersView>('store');
+  const [refreshing, setRefreshing] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [trackingNumber, setTrackingNumber] = useState<string>('');
   const [editingTracking, setEditingTracking] = useState<string | null>(null);
+
+  useEffect(() => {
+    void reloadCatalogFromServer();
+  }, [reloadCatalogFromServer]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await reloadCatalogFromServer();
+      toast.success('Orders refreshed from server.');
+    } catch {
+      toast.error('Could not refresh orders.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
     setOrders((prev) =>
@@ -60,16 +81,20 @@ export default function AdminOrders() {
     document.title = prev;
   };
 
-  const filteredOrders = orders.filter((order) => {
+  const filteredOrders = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      order.id.toLowerCase().includes(q) ||
-      (order.invoiceNumber?.toLowerCase().includes(q) ?? false) ||
-      order.customerName.toLowerCase().includes(q) ||
-      order.customerEmail.toLowerCase().includes(q);
-    const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+    return orders
+      .filter((order) => {
+        const matchesSearch =
+          order.id.toLowerCase().includes(q) ||
+          (order.invoiceNumber?.toLowerCase().includes(q) ?? false) ||
+          order.customerName.toLowerCase().includes(q) ||
+          order.customerEmail.toLowerCase().includes(q);
+        const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [orders, searchQuery, filterStatus]);
 
   const toggleOrderDetails = (orderId: string) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
@@ -78,8 +103,101 @@ export default function AdminOrders() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Orders</h1>
-        <p className="text-gray-600">{filteredOrders.length} orders found</p>
+        <h1 className="text-3xl font-bold mb-2">Orders & referrals</h1>
+        <p className="text-gray-600">
+          In-store checkout orders and outbound affiliate link clicks (partner purchases happen off-site).
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2 items-center">
+          <button
+            type="button"
+            onClick={() => void onRefresh()}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            <RefreshCw className={cn('w-4 h-4', refreshing && 'animate-spin')} />
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('store')}
+            className={cn(
+              'px-4 py-2 rounded-lg text-sm font-medium border transition-colors',
+              view === 'store'
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50',
+            )}
+          >
+            Store orders ({orders.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('affiliate')}
+            className={cn(
+              'px-4 py-2 rounded-lg text-sm font-medium border transition-colors inline-flex items-center gap-2',
+              view === 'affiliate'
+                ? 'bg-violet-700 text-white border-violet-700'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50',
+            )}
+          >
+            <ExternalLink className="w-4 h-4" />
+            Affiliate outbound ({affiliateReferrals.length})
+          </button>
+        </div>
+      </div>
+
+      {view === 'affiliate' ? (
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          {affiliateReferrals.length === 0 ? (
+            <div className="p-10 text-center text-gray-500">
+              <ExternalLink className="w-10 h-10 mx-auto mb-3 text-violet-300" />
+              <p className="font-medium text-gray-800 mb-1">No outbound clicks yet</p>
+              <p className="text-sm max-w-md mx-auto">
+                When shoppers click “Buy on Amazon” (or other partner buttons), clicks appear here. Actual
+                purchases and commissions are tracked in your affiliate partner dashboard—not as GiftJoy orders.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b text-left text-xs uppercase tracking-wide text-gray-500">
+                  <tr>
+                    <th className="px-4 py-3">When</th>
+                    <th className="px-4 py-3">Product</th>
+                    <th className="px-4 py-3">Platform</th>
+                    <th className="px-4 py-3">Destination</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {[...affiliateReferrals]
+                    .sort((a, b) => b.clickedAt.localeCompare(a.clickedAt))
+                    .map((ref) => (
+                      <tr key={ref.id} className="hover:bg-gray-50/80">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                          {new Date(ref.clickedAt).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-gray-900">{ref.productName}</td>
+                        <td className="px-4 py-3 text-violet-700">{ref.platformName ?? 'Partner'}</td>
+                        <td className="px-4 py-3">
+                          <a
+                            href={ref.destinationUrl}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className="text-blue-600 hover:underline truncate max-w-xs inline-block"
+                          >
+                            {ref.destinationUrl.replace(/^https?:\/\//, '').slice(0, 48)}…
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+      <div className="mb-2">
+        <p className="text-sm text-gray-600">{filteredOrders.length} store orders found</p>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
@@ -336,6 +454,8 @@ export default function AdminOrders() {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

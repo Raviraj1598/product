@@ -1,29 +1,48 @@
-import { Heart, ShoppingCart, Eye, Star } from 'lucide-react';
+import { Heart, ShoppingCart, Eye, Star, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router';
-import type { Product } from '@boutique/shared';
+import {
+  affiliateButtonLabel,
+  AFFILIATE_LINK_REL,
+  getAffiliateHref,
+  isAffiliateProduct,
+  mergeStoreSettings,
+  formatProductPrice,
+  recordAffiliateClick,
+  resolveProductAffiliatePlatform,
+  type Product,
+} from '@boutique/shared';
 import { useStore } from '@boutique/shared';
 import { toast } from 'sonner';
 
-const FALLBACK_PALETTE = ['#7a1c1c', '#c9a961', '#8b0000', '#daa520'];
+const FALLBACK_PALETTE = ['#6B2D8C', '#E8725C', '#9B59B6', '#F4A261'];
 
 function badgeFor(product: Product): string | undefined {
+  if (isAffiliateProduct(product)) return 'PARTNER PICK';
   if (product.featured) return 'FEATURED';
   const t = product.tags[0];
   return t ? t.toUpperCase().slice(0, 12) : undefined;
 }
 
 export function FashionProductCard({ product }: { product: Product }) {
-  const { addToCart, toggleWishlist, isInWishlist } = useStore();
+  const { addToCart, toggleWishlist, isInWishlist, settings } = useStore();
+  const mergedSettings = mergeStoreSettings(settings);
+  const affiliatePlatform = resolveProductAffiliatePlatform(product, mergedSettings);
   const image = product.images?.[0] ?? '';
   const originalPrice = product.compareAtPrice;
   const rating = product.rating;
+  const currency = product.priceCurrency ?? affiliatePlatform?.currency;
+  const priceLabel = formatProductPrice(product.price, currency);
+  const compareLabel =
+    originalPrice != null ? formatProductPrice(originalPrice, currency) : null;
   const discount = originalPrice
     ? Math.round(((originalPrice - product.price) / originalPrice) * 100)
     : 0;
   const wishlisted = isInWishlist(product.id);
   const colors = product.tags.slice(0, 4).map((_, i) => FALLBACK_PALETTE[i % FALLBACK_PALETTE.length]);
   const badge = badgeFor(product);
+  const affiliate = isAffiliateProduct(product);
+  const affiliateHref = getAffiliateHref(product, mergedSettings);
 
   return (
     <motion.div
@@ -39,17 +58,38 @@ export function FashionProductCard({ product }: { product: Product }) {
 
         <div className="absolute inset-0 flex flex-col justify-end p-4">
           <div className="flex gap-2 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-            <button
-              type="button"
-              className="flex-1 px-4 py-3 bg-white text-[var(--luxury-maroon)] rounded-lg hover:bg-[var(--luxury-maroon)] hover:text-white transition-all shadow-lg flex items-center justify-center gap-2"
-              onClick={() => {
-                addToCart(product.id, 1);
-                toast.success(`${product.name} added to cart`);
-              }}
-            >
-              <ShoppingCart className="w-4 h-4 shrink-0" />
-              <span className="text-sm font-medium">Add</span>
-            </button>
+            {affiliate && affiliateHref ? (
+              <a
+                href={affiliateHref}
+                target="_blank"
+                rel={AFFILIATE_LINK_REL}
+                onClick={() =>
+                  recordAffiliateClick({
+                    productId: product.id,
+                    productName: product.name,
+                    platformId: affiliatePlatform?.id,
+                    platformName: affiliatePlatform?.name,
+                    destinationUrl: affiliateHref,
+                  })
+                }
+                className="flex-1 px-4 py-3 bg-white text-[var(--luxury-maroon)] rounded-lg hover:bg-[var(--luxury-maroon)] hover:text-white transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4 shrink-0" />
+                <span className="text-sm font-medium">{affiliateButtonLabel(product, mergedSettings)}</span>
+              </a>
+            ) : (
+              <button
+                type="button"
+                className="flex-1 px-4 py-3 bg-white text-[var(--luxury-maroon)] rounded-lg hover:bg-[var(--luxury-maroon)] hover:text-white transition-all shadow-lg flex items-center justify-center gap-2"
+                onClick={() => {
+                  addToCart(product.id, 1);
+                  toast.success(`${product.name} added to cart`);
+                }}
+              >
+                <ShoppingCart className="w-4 h-4 shrink-0" />
+                <span className="text-sm font-medium">Add</span>
+              </button>
+            )}
             <Link
               to={`/product/${product.id}`}
               className="p-3 bg-white text-[var(--luxury-maroon)] rounded-lg hover:bg-[var(--luxury-gold)] hover:text-white transition-all shadow-lg inline-flex items-center justify-center"
@@ -61,7 +101,11 @@ export function FashionProductCard({ product }: { product: Product }) {
         </div>
 
         {badge ? (
-          <div className="absolute top-4 left-4 px-3 py-1 bg-white text-[var(--luxury-maroon)] text-xs font-medium rounded-full shadow-lg backdrop-blur-md z-10">
+          <div
+            className={`absolute top-4 left-4 px-3 py-1 text-xs font-medium rounded-full shadow-lg backdrop-blur-md z-10 ${
+              affiliate ? 'bg-violet-600 text-white' : 'bg-white text-[var(--luxury-maroon)]'
+            }`}
+          >
             {badge}
           </div>
         ) : null}
@@ -110,23 +154,32 @@ export function FashionProductCard({ product }: { product: Product }) {
         </Link>
 
         <div className="flex items-baseline gap-2 mb-3">
-          <span className="text-2xl text-[var(--luxury-maroon)]">${product.price.toFixed(2)}</span>
-          {originalPrice != null && (
-            <span className="text-sm text-gray-400 line-through">${originalPrice.toFixed(2)}</span>
+          <span className="text-2xl text-[var(--luxury-maroon)]">{priceLabel}</span>
+          {compareLabel != null && (
+            <span className="text-sm text-gray-400 line-through">{compareLabel}</span>
+          )}
+          {affiliate && affiliatePlatform && (
+            <span className="text-xs text-violet-600 font-medium ml-auto">{affiliatePlatform.name}</span>
           )}
         </div>
 
         <div className="flex gap-2 items-center">
-          <span className="text-xs text-gray-500">Palette:</span>
-          <div className="flex gap-1">
-            {colors.slice(0, 4).map((color, index) => (
-              <span
-                key={`${product.id}-${index}`}
-                className="w-5 h-5 rounded-full border-2 border-gray-200 shrink-0"
-                style={{ backgroundColor: color }}
-                aria-hidden
-              />
-            ))}
+          <span className="text-xs text-gray-500">{affiliate ? 'Tags:' : 'Palette:'}</span>
+          <div className="flex gap-1 flex-wrap">
+            {affiliate
+              ? product.tags.slice(0, 3).map((tag) => (
+                  <span key={tag} className="text-xs bg-[var(--luxury-cream)] text-[var(--luxury-maroon)] px-2 py-0.5 rounded-full">
+                    {tag}
+                  </span>
+                ))
+              : colors.slice(0, 4).map((color, index) => (
+                  <span
+                    key={`${product.id}-${index}`}
+                    className="w-5 h-5 rounded-full border-2 border-gray-200 shrink-0"
+                    style={{ backgroundColor: color }}
+                    aria-hidden
+                  />
+                ))}
           </div>
         </div>
       </div>

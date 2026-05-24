@@ -11,9 +11,13 @@ import {
   Layers,
   LogOut,
   Users,
+  Shield,
+  Database,
 } from 'lucide-react';
+import { mergeStoreSettings, useStore } from '@boutique/shared';
 import { storefrontHref } from '../lib/externalUrls';
 import { useAuth } from '../auth/AuthContext';
+import { cn } from '../components/ui/utils';
 
 type NavItem = { path: string; icon: typeof LayoutDashboard; label: string };
 type NavSection = { heading: string; items: NavItem[] };
@@ -22,6 +26,8 @@ export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { settings } = useStore();
+  const admin = mergeStoreSettings(settings).adminPanel;
 
   const handleLogout = async () => {
     await logout();
@@ -54,22 +60,33 @@ export default function AdminLayout() {
       items: [{ path: '/pages', icon: Layers, label: 'Pages' }],
     },
     {
-      heading: 'Stores',
-      items: [{ path: '/settings', icon: Settings, label: 'Configuration' }],
+      heading: 'System',
+      items: [
+        { path: '/data', icon: Database, label: 'Import & export' },
+        { path: '/settings', icon: Settings, label: 'Configuration' },
+        { path: '/admin-settings', icon: Shield, label: 'Admin settings' },
+      ],
     },
   ];
 
-  const isNavActive = (navPath: string) =>
-    navPath === '/'
+  const isNavActive = (navPath: string) => {
+    if (navPath === '/data') {
+      return location.pathname === '/data';
+    }
+    return navPath === '/'
       ? location.pathname === '/'
       : location.pathname === navPath || location.pathname.startsWith(`${navPath}/`);
+  };
+
+  const accent = admin.accentColor?.trim() || '#f97316';
 
   return (
     <div className="min-h-screen flex">
       <aside className="w-64 bg-gray-900 text-white flex flex-col shrink-0">
         <div className="p-6 border-b border-gray-800">
-          <h1 className="text-xl font-bold tracking-tight">Boutique Admin</h1>
-          <p className="text-xs text-gray-500 mt-1 truncate" title={user?.email}>
+          <h1 className="text-xl font-bold tracking-tight">{admin.panelTitle}</h1>
+          <p className="text-xs text-gray-500 mt-1">{admin.panelSubtitle}</p>
+          <p className="text-xs text-gray-500 mt-2 truncate" title={user?.email}>
             {user?.displayName || user?.email || 'Signed in'}
           </p>
         </div>
@@ -89,11 +106,20 @@ export default function AdminLayout() {
                       <li key={item.path}>
                         <Link
                           to={item.path}
-                          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                          className={cn(
+                            'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm',
                             isActive
-                              ? 'bg-gray-800 text-white'
-                              : 'text-gray-400 hover:bg-gray-800/80 hover:text-white'
-                          }`}
+                              ? 'text-white font-medium'
+                              : 'text-gray-400 hover:bg-gray-800/80 hover:text-white',
+                          )}
+                          style={
+                            isActive
+                              ? {
+                                  backgroundColor: `${accent}22`,
+                                  boxShadow: `inset 3px 0 0 ${accent}`,
+                                }
+                              : undefined
+                          }
                         >
                           <Icon className="w-5 h-5 shrink-0 opacity-90" />
                           <span>{item.label}</span>
@@ -108,13 +134,15 @@ export default function AdminLayout() {
         </nav>
 
         <div className="p-4 border-t border-gray-800 space-y-1">
-          <a
-            href={storefrontHref('/')}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-sm"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>View storefront</span>
-          </a>
+          {admin.showStorefrontLink !== false && (
+            <a
+              href={storefrontHref('/')}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors text-sm"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>View storefront</span>
+            </a>
+          )}
           <button
             type="button"
             onClick={() => void handleLogout()}

@@ -12,6 +12,9 @@ function productsForGrid(
   switch (block.source) {
     case 'featured':
       pool = products.filter((p) => p.featured);
+      if (pool.length === 0) {
+        pool = products.filter((p) => p.purchaseMode === 'affiliate');
+      }
       break;
     case 'category': {
       const name = block.categoryName.trim();

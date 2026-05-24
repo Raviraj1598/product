@@ -4,6 +4,7 @@ import { Save } from 'lucide-react';
 import {
   CONFIG_NAV,
   DEFAULT_CONFIG_SECTION,
+  firstSectionInGroup,
   isConfigSectionId,
   sectionMeta,
   type ConfigSectionId,
@@ -26,30 +27,51 @@ export function ConfigurationShell({
   };
 
   const breadcrumb = useMemo(
-    () => ['Stores', 'Configuration', meta.group, meta.label],
+    () => ['Stores', 'Configuration', meta.group, meta.label] as const,
     [meta.group, meta.label],
   );
 
+  const onBreadcrumbClick = (index: number) => {
+    if (index === 1) {
+      setSection(DEFAULT_CONFIG_SECTION);
+      return;
+    }
+    if (index === 2) {
+      const first = firstSectionInGroup(meta.group);
+      if (first) setSection(first);
+    }
+  };
+
   return (
     <div className="min-h-full flex flex-col bg-[#f8f8f8]">
-      <header className="bg-[#514943] text-white shrink-0">
+      <header className="bg-[#514943] text-white shrink-0 sticky top-0 z-20">
         <div className="px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-orange-200/90 font-semibold">System</p>
             <h1 className="text-lg font-semibold tracking-tight">Configuration</h1>
           </div>
-          <div className="flex items-center gap-2 text-xs bg-black/20 rounded px-3 py-1.5 border border-white/10">
-            <span className="text-gray-300">Scope:</span>
-            <span className="font-medium">Default Store View</span>
-          </div>
         </div>
         <nav className="px-6 pb-2 flex flex-wrap gap-1 text-xs text-orange-100/80" aria-label="Breadcrumb">
-          {breadcrumb.map((crumb, i) => (
-            <span key={`${crumb}-${i}`} className="flex items-center gap-1">
-              {i > 0 ? <span className="opacity-50">›</span> : null}
-              <span className={i === breadcrumb.length - 1 ? 'text-white font-medium' : ''}>{crumb}</span>
-            </span>
-          ))}
+          {breadcrumb.map((crumb, i) => {
+            const isLast = i === breadcrumb.length - 1;
+            const isClickable = !isLast && (i === 1 || i === 2);
+            return (
+              <span key={`${crumb}-${i}`} className="flex items-center gap-1">
+                {i > 0 ? <span className="opacity-50">›</span> : null}
+                {isClickable ? (
+                  <button
+                    type="button"
+                    onClick={() => onBreadcrumbClick(i)}
+                    className="hover:text-white underline-offset-2 hover:underline"
+                  >
+                    {crumb}
+                  </button>
+                ) : (
+                  <span className={isLast ? 'text-white font-medium' : ''}>{crumb}</span>
+                )}
+              </span>
+            );
+          })}
         </nav>
       </header>
 
@@ -92,27 +114,23 @@ export function ConfigurationShell({
 
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">{meta.label}</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                {meta.group} configuration — changes sync to the storefront after you save.
-              </p>
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 className="text-xl font-semibold text-gray-900">{meta.label}</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {meta.group} configuration — changes sync to the storefront after you save.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onSave}
+                className="inline-flex items-center gap-2 shrink-0 bg-[#eb5202] hover:bg-[#d04a02] text-white px-5 py-2.5 rounded-sm text-sm font-semibold shadow-sm transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                Save Config
+              </button>
             </div>
             {children(active)}
-          </div>
-
-          <div className="shrink-0 border-t border-gray-300 bg-white px-6 py-4 flex items-center gap-3 shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
-            <button
-              type="button"
-              onClick={onSave}
-              className="inline-flex items-center gap-2 bg-[#eb5202] hover:bg-[#d04a02] text-white px-5 py-2.5 rounded-sm text-sm font-semibold shadow-sm"
-            >
-              <Save className="w-4 h-4" />
-              Save Config
-            </button>
-            <span className="text-xs text-gray-500">
-              Persists to catalog SQLite · visible on next storefront load
-            </span>
           </div>
         </div>
       </div>

@@ -1,8 +1,15 @@
 import { motion } from 'motion/react';
 import { Link } from 'react-router';
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight, Star, Gift } from 'lucide-react';
+import { useStore } from '@boutique/shared';
 
 export function FashionHeroSplit() {
+  const { settings } = useStore();
+  const title = settings.storefrontTitle?.trim() || 'Curated gifts for every moment';
+  const subtitle =
+    settings.storefrontSubtitle?.trim() ||
+    'Discover thoughtful presents for every occasion—from our own collection to handpicked partner favourites.';
+
   return (
     <div className="relative bg-gradient-to-br from-[var(--luxury-cream)] via-white to-[var(--luxury-gold)]/10 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -13,50 +20,58 @@ export function FashionHeroSplit() {
             transition={{ duration: 0.8 }}
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md mb-6">
-              <Star className="w-4 h-4 text-[var(--luxury-gold)] fill-[var(--luxury-gold)]" aria-hidden />
-              <span className="text-sm text-[var(--luxury-maroon)]">Handcrafted excellence</span>
+              <Gift className="w-4 h-4 text-[var(--luxury-gold)]" aria-hidden />
+              <span className="text-sm text-[var(--luxury-maroon)]">Curated with care</span>
             </div>
 
             <h2 className="text-5xl md:text-6xl font-bold text-[var(--luxury-maroon)] mb-6 leading-tight">
-              Timeless
-              <span className="block bg-gradient-to-r from-[var(--luxury-gold)] to-[var(--luxury-maroon)] bg-clip-text text-transparent">
-                Elegance
-              </span>
+              {title.split(' ').length > 3 ? (
+                <>
+                  {title.split(' ').slice(0, -2).join(' ')}
+                  <span className="block bg-gradient-to-r from-[var(--luxury-gold)] to-[var(--luxury-maroon)] bg-clip-text text-transparent">
+                    {title.split(' ').slice(-2).join(' ')}
+                  </span>
+                </>
+              ) : (
+                <>
+                  Gifts that
+                  <span className="block bg-gradient-to-r from-[var(--luxury-gold)] to-[var(--luxury-maroon)] bg-clip-text text-transparent">
+                    delight
+                  </span>
+                </>
+              )}
             </h2>
 
-            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              Celebrate heritage with curated ethnic wear—from festive Chaniya Choli to bridal lehengas—all
-              synced with our live catalog and checkout.
-            </p>
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed">{subtitle}</p>
 
             <div className="flex flex-wrap gap-4 mb-8">
               <Link
                 to="/shop"
                 className="px-8 py-4 bg-[var(--luxury-maroon)] text-white rounded-full hover:bg-[var(--luxury-red)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 inline-flex items-center gap-2"
               >
-                Shop collection
+                Browse gifts
                 <ArrowRight className="w-5 h-5" aria-hidden />
               </Link>
               <Link
                 to="/shop"
                 className="px-8 py-4 border-2 border-[var(--luxury-maroon)] text-[var(--luxury-maroon)] rounded-full hover:bg-[var(--luxury-maroon)] hover:text-white transition-all inline-flex items-center justify-center"
               >
-                View all products
+                Partner picks
               </Link>
             </div>
 
             <div className="grid grid-cols-3 gap-6">
               <div className="text-center">
-                <div className="text-3xl text-[var(--luxury-maroon)] mb-1">Live</div>
-                <div className="text-sm text-gray-500">Inventory</div>
+                <div className="text-3xl text-[var(--luxury-maroon)] mb-1">500+</div>
+                <div className="text-sm text-gray-500">Gift ideas</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl text-[var(--luxury-maroon)] mb-1">API</div>
-                <div className="text-sm text-gray-500">Backed catalog</div>
+                <div className="text-3xl text-[var(--luxury-maroon)] mb-1">Gift</div>
+                <div className="text-sm text-gray-500">Wrap available</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl text-[var(--luxury-maroon)] mb-1">4.9★</div>
-                <div className="text-sm text-gray-500">Service</div>
+                <div className="text-sm text-gray-500">Happy givers</div>
               </div>
             </div>
           </motion.div>
@@ -75,8 +90,8 @@ export function FashionHeroSplit() {
                   className="relative rounded-2xl overflow-hidden shadow-2xl"
                 >
                   <img
-                    src="https://images.unsplash.com/photo-1742891602910-1b724ac6939c?w=1080&q=80&fit=max"
-                    alt="Traditional Wear"
+                    src="https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=1080&q=80&fit=max"
+                    alt="Wrapped gifts"
                     className="w-full h-80 object-cover"
                   />
                   <div className="absolute top-4 right-4 px-3 py-1 bg-[var(--luxury-gold)] text-white text-sm rounded-full">
@@ -89,8 +104,8 @@ export function FashionHeroSplit() {
                   className="rounded-2xl overflow-hidden shadow-2xl"
                 >
                   <img
-                    src="https://images.unsplash.com/photo-1654764746225-e63f5e90facd?w=1080&q=80&fit=max"
-                    alt="Wedding Collection"
+                    src="https://images.unsplash.com/photo-1549465220-1a8b923823cd?w=1080&q=80&fit=max"
+                    alt="Birthday gifts"
                     className="w-full h-64 object-cover"
                   />
                 </motion.div>
@@ -102,8 +117,8 @@ export function FashionHeroSplit() {
                   className="rounded-2xl overflow-hidden shadow-2xl"
                 >
                   <img
-                    src="https://images.unsplash.com/photo-1774437897985-9a7f1b7867a8?w=1080&q=80&fit=max"
-                    alt="Festive Collection"
+                    src="https://images.unsplash.com/photo-1512909006721-3d0158887362?w=1080&q=80&fit=max"
+                    alt="Occasion gifts"
                     className="w-full h-64 object-cover"
                   />
                 </motion.div>
@@ -113,8 +128,8 @@ export function FashionHeroSplit() {
                   className="rounded-2xl overflow-hidden shadow-2xl"
                 >
                   <img
-                    src="https://images.unsplash.com/photo-1598899044014-895e928db374?w=1080&q=80&fit=max"
-                    alt="Designer Wear"
+                    src="https://images.unsplash.com/photo-1607083206869-4c7672f72a7a?w=1080&q=80&fit=max"
+                    alt="Gift boxes"
                     className="w-full h-80 object-cover"
                   />
                 </motion.div>

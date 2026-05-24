@@ -19,9 +19,10 @@ export default function StoreLayout() {
   }, [settings]);
 
   if (!catalogReady) {
+    const name = mergeStoreSettings(settings).siteName;
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--boutique-surface)] text-muted-foreground transition-colors duration-500">
-        Loading boutique…
+        Loading {name}…
       </div>
     );
   }

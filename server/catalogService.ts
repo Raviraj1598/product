@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import type {
+  AffiliateReferral,
   BuiltPage,
   Category,
   Coupon,
@@ -19,6 +20,11 @@ import {
 } from '../packages/shared/src/catalog/seedCatalog';
 import { mergeStoreSettings } from '../packages/shared/src/catalog/storeSettings';
 import { normalizeBuiltPages } from '../packages/shared/src/cms/normalizeBuiltPages';
+import {
+  catalogNeedsDefaultSeed,
+  ensureDefaultBuiltPages,
+  ensureStoreNavDefaults,
+} from '../packages/shared/src/cms/catalogDefaults';
 import { hydrateCategories } from '../packages/shared/src/catalog/categoryHelpers';
 
 export interface CatalogJson {
@@ -30,6 +36,7 @@ export interface CatalogJson {
   coupons: Coupon[];
   settings: StoreSettings;
   builtPages: BuiltPage[];
+  affiliateReferrals?: AffiliateReferral[];
 }
 
 function normalizeCustomers(raw: unknown): Customer[] {
@@ -71,9 +78,36 @@ export function normalizeParsedCatalog(parsed: unknown): CatalogJson {
   const reviews = Array.isArray(p.reviews) ? (p.reviews as Review[]) : [...defaultReviews];
   const coupons = Array.isArray(p.coupons) ? (p.coupons as Coupon[]) : [...defaultCoupons];
   const settings = mergeStoreSettings(isRecord(p.settings) ? (p.settings as Partial<StoreSettings>) : undefined);
-  const builtPages = normalizeBuiltPages(p.builtPages);
+  const builtPagesRaw = normalizeBuiltPages(p.builtPages);
+  const builtPages = ensureDefaultBuiltPages(builtPagesRaw);
+  const settingsWithNav = ensureStoreNavDefaults(settings);
+  const affiliateReferrals = Array.isArray(p.affiliateReferrals)
+    ? (p.affiliateReferrals as AffiliateReferral[])
+    : [];
 
-  return { products, categories, customers, orders, reviews, coupons, settings, builtPages };
+  return {
+    products,
+    categories,
+    customers,
+    orders,
+    reviews,
+    coupons,
+    settings: settingsWithNav,
+    builtPages,
+    affiliateReferrals,
+  };
+}
+
+/** Apply CMS + nav defaults (idempotent). */
+export function applyCatalogDefaults(catalog: CatalogJson): CatalogJson {
+  const builtPages = ensureDefaultBuiltPages(catalog.builtPages);
+  const settings = ensureStoreNavDefaults(catalog.settings);
+  return {
+    ...catalog,
+    builtPages,
+    settings,
+    affiliateReferrals: catalog.affiliateReferrals ?? [],
+  };
 }
 
 /** Legacy single-file fallback / seed baseline. */

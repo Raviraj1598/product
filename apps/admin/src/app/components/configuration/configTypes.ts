@@ -18,6 +18,7 @@ export type ConfigSectionId =
   | 'sales-tax'
   | 'sales-checkout'
   | 'catalog-policies'
+  | 'catalog-affiliate'
   | 'shipping-settings'
   | 'shipping-methods'
   | 'payment-methods'
@@ -55,7 +56,10 @@ export const CONFIG_NAV: ConfigNavGroup[] = [
     id: 'catalog',
     label: 'Catalog',
     icon: Package,
-    items: [{ id: 'catalog-policies', label: 'Product Policies' }],
+    items: [
+      { id: 'catalog-policies', label: 'Product Policies' },
+      { id: 'catalog-affiliate', label: 'Affiliate Platforms' },
+    ],
   },
   {
     id: 'sales',
@@ -108,4 +112,9 @@ export function sectionMeta(id: ConfigSectionId): { group: string; label: string
     if (item) return { group: g.label, label: item.label };
   }
   return { group: 'Configuration', label: 'Settings' };
+}
+
+export function firstSectionInGroup(groupLabel: string): ConfigSectionId | null {
+  const group = CONFIG_NAV.find((g) => g.label === groupLabel);
+  return group?.items[0]?.id ?? null;
 }

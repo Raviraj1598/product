@@ -4,6 +4,8 @@ export interface ProductVariant {
   options: string[];
 }
 
+export type ProductPurchaseMode = 'internal' | 'affiliate';
+
 export interface Product {
   id: string;
   name: string;
@@ -21,6 +23,18 @@ export interface Product {
   featured: boolean;
   createdAt: string;
   updatedAt: string;
+  /** When `affiliate`, product links out via affiliateUrl instead of cart/checkout. */
+  purchaseMode?: ProductPurchaseMode;
+  /** External purchase URL (Amazon, Flipkart, etc.) with affiliate tracking params. */
+  affiliateUrl?: string;
+  /** Partner name shown in CTA, e.g. "Amazon". */
+  affiliateVendor?: string;
+  /** Override default "Shop now" / "Buy on {vendor}" button text. */
+  affiliateButtonLabel?: string;
+  /** Links to StoreSettings.affiliatePlatforms[].id */
+  affiliatePlatformId?: string;
+  /** Display currency for affiliate/imported prices (INR, USD, …). */
+  priceCurrency?: string;
 }
 
 export interface Category {
@@ -120,6 +134,17 @@ export interface Order {
   paymentMethodLabel?: string;
 }
 
+/** Outbound affiliate link click — not a store order; purchase completes on partner site. */
+export interface AffiliateReferral {
+  id: string;
+  productId: string;
+  productName: string;
+  platformId?: string;
+  platformName?: string;
+  destinationUrl: string;
+  clickedAt: string;
+}
+
 export interface WishlistItem {
   productId: string;
   addedAt: string;
@@ -181,6 +206,80 @@ export interface StoreSocialLink {
   url: string;
 }
 
+export interface AffiliatePlatformConfig {
+  id: string;
+  name: string;
+  /** Matched against link hostname, e.g. amazon.in */
+  domainPattern: string;
+  affiliateParamName: string;
+  affiliateParamValue: string;
+  buttonLabel: string;
+  currency: string;
+  importEnabled: boolean;
+  enabled: boolean;
+  sortOrder: number;
+}
+
+export interface HeaderLogoDesign {
+  glyph: string;
+  primary: string;
+  accent: string;
+  shape: 'rounded' | 'circle';
+  /** When true, badge builder adds store name text beside the initial. */
+  includeName?: boolean;
+  /** Optional label beside the badge (defaults to store name). */
+  nameText?: string;
+}
+
+/** Admin SPA branding & workflow defaults (persisted with catalog settings). */
+export interface AdminPanelSettings {
+  /** Sidebar title, e.g. "GiftJoy Admin". */
+  panelTitle: string;
+  /** Small line under title in sidebar. */
+  panelSubtitle: string;
+  /** Highlight color for active nav (hex). */
+  accentColor: string;
+  /** Skip type picker when adding products if not "picker". */
+  defaultProductMode: 'picker' | 'internal' | 'affiliate';
+  /** Show "View storefront" in sidebar footer. */
+  showStorefrontLink: boolean;
+  /** Shown on Admin Settings + dashboard help. */
+  supportEmail: string;
+  /** Optional note on dashboard welcome card. */
+  dashboardNote: string;
+  /** Email store owner when a new checkout order is placed (requires server .env mail config). */
+  orderNotifyEnabled: boolean;
+  /** Recipient for new-order alerts; defaults to supportEmail when empty. */
+  orderNotifyEmail: string;
+  /** Optional note shown on Order alerts config (your mail setup instructions). */
+  orderNotifyHelpNote: string;
+}
+
+export interface AdminSecuritySnapshot {
+  email: string;
+  displayName: string;
+  sessionTtlHours: number;
+  activeSessions: number;
+  loginRequired: boolean;
+  cookieHttpOnly: boolean;
+  cookieSecure: boolean;
+  cookieSameSite: string;
+  emailProviderConfigured?: boolean;
+}
+
+/** Homepage “Collection spotlight” carousel settings. */
+export interface HomepageCollectionSpotlight {
+  enabled: boolean;
+  eyebrow: string;
+  title: string;
+  description: string;
+  /** Ordered category IDs; empty = auto-pick published categories. */
+  categoryIds: string[];
+  autoplaySeconds: number;
+  slideSubtitle: string;
+  buttonLabel: string;
+}
+
 /** CMS-style fields consumed by storefront + admin Settings. Persisted via /api/catalog. */
 export interface StoreSettings {
   siteName: string;
@@ -207,6 +306,16 @@ export interface StoreSettings {
   headerTagline: string;
   /** Single character or short glyph in logo diamond */
   headerLogoGlyph: string;
+  /** Optional image logo URL; when set, replaces the glyph diamond in the header. */
+  headerLogoUrl?: string;
+  /** Badge designer state for re-editing in admin. */
+  headerLogoDesign?: HeaderLogoDesign;
+  /** FTC-style disclosure shown on affiliate product pages and cards. */
+  affiliateDisclosure?: string;
+  /** Amazon Associates tracking id (legacy — prefer affiliatePlatforms). */
+  amazonAffiliateTag?: string;
+  /** Configured affiliate partner platforms (Amazon, Flipkart, …). */
+  affiliatePlatforms: AffiliatePlatformConfig[];
   /** Desktop main navigation */
   headerNavLinks: StorefrontNavLink[];
 
@@ -223,6 +332,10 @@ export interface StoreSettings {
   footerSocialLinks: StoreSocialLink[];
   /** Bottom bar beside copyright */
   footerLegalLinks: StorefrontNavLink[];
+  /** Homepage category carousel (Collection spotlight). */
+  homepageCollectionSpotlight: HomepageCollectionSpotlight;
+  /** Admin panel branding & preferences. */
+  adminPanel: AdminPanelSettings;
 }
 
 /** Block in admin page builder → rendered at `/p/:slug` when published */

@@ -39,12 +39,12 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  /* Premium ethnic storefront (aligned with github.com/Raviraj1598/store_two) */
-  --luxury-maroon: #7a1c1c;
-  --luxury-gold: #c9a961;
-  --luxury-cream: #faf8f5;
-  --luxury-red: #8b0000;
-  --luxury-black: #1a0f0a;
+  /* Gift store theme (GiftJoy) */
+  --luxury-maroon: #6B2D8C;
+  --luxury-gold: #E8725C;
+  --luxury-cream: #FEF7F3;
+  --luxury-red: #E8725C;
+  --luxury-black: #2D1B4E;
 }
 
 .dark {
@@ -203,4 +203,13 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }

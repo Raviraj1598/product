@@ -1,12 +1,14 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
-import { useStore, resolveCategorySlug } from '@boutique/shared';
-import { ShoppingCart, Heart, Star, Search, SlidersHorizontal, Tag } from 'lucide-react';
-import { toast } from 'sonner';
+import { useNavigate, useSearchParams } from 'react-router';
+import { useStore, resolveCategorySlug, isAffiliateProduct, mergeStoreSettings } from '@boutique/shared';
+import { Search, SlidersHorizontal } from 'lucide-react';
 import { resolveShopCategoryFilter, shopSearch } from '../../lib/shopNavigation';
+import { FashionProductCard } from '../../components/fashion/FashionProductCard';
+import { StoreBreadcrumb } from '../../components/StoreBreadcrumb';
 
 export default function StoreFront() {
-  const { products, categories, settings, addToCart, toggleWishlist, isInWishlist } = useStore();
+  const { products, categories, settings } = useStore();
+  const mergedSettings = mergeStoreSettings(settings);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const visibleCategories = useMemo(() => {
@@ -39,10 +41,21 @@ export default function StoreFront() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'featured' | 'price-low' | 'price-high' | 'rating' | 'newest'>('featured');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  /** null = show full catalog range (includes affiliate INR/USD mix). */
+  const [priceRange, setPriceRange] = useState<[number, number] | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+
+  const catalogMaxPrice = useMemo(
+    () => Math.max(...products.map((p) => p.price), 1),
+    [products],
+  );
+
+  const effectivePriceRange = useMemo(
+    () => priceRange ?? [0, catalogMaxPrice],
+    [priceRange, catalogMaxPrice],
+  );
 
   useEffect(() => {
     const q = searchParams.get('q');
@@ -60,7 +73,9 @@ export default function StoreFront() {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            product.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
+      const matchesPrice =
+        isAffiliateProduct(product) ||
+        (product.price >= effectivePriceRange[0] && product.price <= effectivePriceRange[1]);
       return matchesCategory && matchesSearch && matchesPrice;
     });
 
@@ -83,7 +98,7 @@ export default function StoreFront() {
     });
 
     return result;
-  }, [products, activeCategoryFilter, searchQuery, priceRange, sortBy]);
+  }, [products, activeCategoryFilter, searchQuery, effectivePriceRange, sortBy]);
 
   const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage);
   const paginatedProducts = filteredAndSortedProducts.slice(
@@ -91,35 +106,32 @@ export default function StoreFront() {
     currentPage * itemsPerPage
   );
 
-  const handleAddToCart = (productId: string, productName: string) => {
-    addToCart(productId, 1);
-    toast.success(`${productName} added to cart!`);
-  };
+  const affiliateCount = useMemo(() => products.filter(isAffiliateProduct).length, [products]);
 
-  const handleWishlistToggle = (productId: string, productName: string) => {
-    const wasInWishlist = isInWishlist(productId);
-    toggleWishlist(productId);
-    toast.success(wasInWishlist ? `${productName} removed from wishlist` : `${productName} added to wishlist!`);
-  };
-
-  const catalogMaxPrice = useMemo(
-    () => Math.max(...products.map((p) => p.price), 1),
-    [products],
-  );
-
-  useEffect(() => {
-    setPriceRange(([lo, hi]) => {
-      const cappedHi = Math.min(hi, catalogMaxPrice);
-      const cappedLo = Math.min(lo, cappedHi);
-      return [cappedLo, Math.max(cappedLo, cappedHi)];
-    });
-  }, [catalogMaxPrice]);
+  const breadcrumbItems = useMemo(() => {
+    const items: { label: string; href?: string }[] = [
+      { label: 'Home', href: '/' },
+      { label: 'Shop', href: '/shop' },
+    ];
+    if (activeCategoryFilter.mode === 'one') {
+      const cat = visibleCategories.find((c) => c.name === activeCategoryFilter.categoryName)
+        ?? categories.find((c) => c.name === activeCategoryFilter.categoryName);
+      items.push({ label: cat?.name ?? activeCategoryFilter.categoryName });
+    }
+    return items;
+  }, [activeCategoryFilter, visibleCategories, categories]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <StoreBreadcrumb items={breadcrumbItems} />
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">{settings.storefrontTitle}</h1>
-        <p className="text-gray-600">{settings.storefrontSubtitle}</p>
+        <h1 className="text-4xl font-bold mb-2">{mergedSettings.storefrontTitle}</h1>
+        <p className="text-gray-600">{mergedSettings.storefrontSubtitle}</p>
+        {affiliateCount > 0 && (
+          <p className="text-sm text-violet-700 mt-2 font-medium">
+            Includes {affiliateCount} partner pick{affiliateCount === 1 ? '' : 's'} — buy via external affiliate links.
+          </p>
+        )}
       </div>
 
       <div className="mb-8 bg-white rounded-lg shadow-sm border p-6">
@@ -162,15 +174,21 @@ export default function StoreFront() {
           <div className="pt-4 border-t">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium mb-3">Price Range: ${priceRange[0]} - ${priceRange[1]}</label>
+                <label className="block text-sm font-medium mb-3">
+                  Price range (in-store items): {effectivePriceRange[0]} – {effectivePriceRange[1]}
+                  <span className="block text-xs font-normal text-gray-500 mt-1">
+                    Partner / affiliate picks always show — they use partner pricing (₹ / $).
+                  </span>
+                </label>
                 <div className="flex items-center gap-4">
                   <input
                     type="range"
                     min="0"
                     max={catalogMaxPrice}
-                    value={priceRange[0]}
+                    value={effectivePriceRange[0]}
                     onChange={(e) => {
-                      setPriceRange([parseInt(e.target.value), priceRange[1]]);
+                      const lo = parseInt(e.target.value, 10);
+                      setPriceRange([lo, Math.max(lo, effectivePriceRange[1])]);
                       setCurrentPage(1);
                     }}
                     className="flex-1"
@@ -179,9 +197,10 @@ export default function StoreFront() {
                     type="range"
                     min="0"
                     max={catalogMaxPrice}
-                    value={priceRange[1]}
+                    value={effectivePriceRange[1]}
                     onChange={(e) => {
-                      setPriceRange([priceRange[0], parseInt(e.target.value)]);
+                      const hi = parseInt(e.target.value, 10);
+                      setPriceRange([Math.min(effectivePriceRange[0], hi), hi]);
                       setCurrentPage(1);
                     }}
                     className="flex-1"
@@ -251,102 +270,9 @@ export default function StoreFront() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-            {paginatedProducts.map((product) => {
-              const inWishlist = isInWishlist(product.id);
-              const discount = product.compareAtPrice
-                ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
-                : 0;
-
-              return (
-                <div key={product.id} className="bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-lg transition-all group">
-                  <Link to={`/product/${product.id}`} className="block relative">
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    {product.featured && (
-                      <span className="absolute top-3 left-3 bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-current" />
-                        Featured
-                      </span>
-                    )}
-                    {discount > 0 && (
-                      <span className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                        -{discount}%
-                      </span>
-                    )}
-                  </Link>
-
-                  <div className="p-4">
-                    <Link to={`/product/${product.id}`}>
-                      <h3 className="font-semibold mb-2 hover:text-gray-600 line-clamp-2">{product.name}</h3>
-                    </Link>
-
-                    <div className="flex items-center gap-1 mb-2">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-medium">{product.rating.toFixed(1)}</span>
-                      </div>
-                      <span className="text-xs text-gray-500">({product.reviewCount})</span>
-                    </div>
-
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
-
-                    {product.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {product.tags.slice(0, 2).map((tag, index) => (
-                          <span key={index} className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                            <Tag className="w-3 h-3" />
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <span className="text-xl font-bold">${product.price.toFixed(2)}</span>
-                        {product.compareAtPrice && (
-                          <span className="text-sm text-gray-500 line-through ml-2">
-                            ${product.compareAtPrice.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {product.stock > 0 ? (
-                        <button
-                          onClick={() => handleAddToCart(product.id, product.name)}
-                          className="flex-1 flex items-center justify-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-                        >
-                          <ShoppingCart className="w-4 h-4" />
-                          Add
-                        </button>
-                      ) : (
-                        <button
-                          disabled
-                          className="flex-1 bg-gray-100 text-gray-400 px-4 py-2 rounded-lg cursor-not-allowed"
-                        >
-                          Out of Stock
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleWishlistToggle(product.id, product.name)}
-                        className={`p-2 rounded-lg border transition-colors ${
-                          inWishlist
-                            ? 'bg-red-50 border-red-200 text-red-600'
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {paginatedProducts.map((product) => (
+              <FashionProductCard key={product.id} product={product} />
+            ))}
           </div>
 
           {totalPages > 1 && (

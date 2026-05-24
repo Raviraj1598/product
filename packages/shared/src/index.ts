@@ -32,6 +32,11 @@ export type {
   StorefrontNavLink,
   StoreSocialLink,
   StoreSocialPlatform,
+  ProductPurchaseMode,
+  AffiliatePlatformConfig,
+  HeaderLogoDesign,
+  AdminPanelSettings,
+  HomepageCollectionSpotlight,
 } from './types';
 
 export {
@@ -54,11 +59,24 @@ export {
 } from './cms/pageBuilderRows';
 
 export { PAGE_TEMPLATE_IDS, PAGE_TEMPLATE_META, createPageFromTemplate } from './cms/pageTemplates';
+export { defaultBuiltPages, DEFAULT_PAGE_SLUGS } from './cms/defaultBuiltPages';
+export { ensureDefaultBuiltPages } from './cms/catalogDefaults';
 
 export type { ServerCatalog } from './api/catalogApi';
 export { fetchCatalog, putCatalog, postOrder, isAdminCatalogClient } from './api/catalogApi';
+export type { AffiliatePreviewResult } from './api/affiliateApi';
+export { fetchAffiliatePreview, recordAffiliateClick } from './api/affiliateApi';
+export type { AffiliateReferral } from './types';
 export type { PlaceOrderResult } from './api/customerApi';
-export { fetchAuthMe, loginAdmin, logoutAdmin } from './api/authApi';
+export type { AdminSecuritySnapshot } from './types';
+export {
+  fetchAuthMe,
+  loginAdmin,
+  logoutAdmin,
+  fetchAdminSecurity,
+  changeAdminPassword,
+  revokeOtherAdminSessions,
+} from './api/authApi';
 export {
   fetchCustomerMe,
   registerCustomer,
@@ -92,12 +110,62 @@ export {
   coercePaymentGateway,
 } from './catalog/storeSettings';
 
+export { defaultAdminPanelSettings } from './catalog/adminPanelSettings';
+export {
+  defaultHomepageCollectionSpotlight,
+  resolveHomepageSpotlightSlides,
+  type ResolvedSpotlightSlide,
+} from './catalog/homepageSpotlight';
+export {
+  CATALOG_BACKUP_VERSION,
+  CATALOG_BACKUP_SECTIONS,
+  buildCatalogBackup,
+  downloadCatalogBackup,
+  parseCatalogBackupFile,
+  mergeCatalogImport,
+  type CatalogBackupSection,
+  type CatalogBackupFile,
+} from './catalog/catalogBackup';
+
 export {
   checkoutTotals,
   orderTotalsFromSubtotal,
   resolveShippingCharge,
   primaryShippingMethodId,
 } from './utils/pricing';
+
+export {
+  isAffiliateProduct,
+  resolvePurchaseMode,
+  getAffiliateHref,
+  affiliateButtonLabel,
+  AFFILIATE_LINK_REL,
+} from './utils/productHelpers';
+
+export {
+  defaultAffiliatePlatforms,
+  sortedAffiliatePlatforms,
+  allAffiliatePlatforms,
+  matchPlatformByUrl,
+  resolveProductAffiliatePlatform,
+  applyPlatformAffiliateParams,
+  amazonTagFromSettings,
+  formatProductPrice,
+  affiliatePlatformButtonLabel,
+  truncateDescription,
+} from './catalog/affiliatePlatforms';
+
+export { applyAmazonAffiliateTag, isAmazonUrl } from './utils/affiliateUrl';
+
+export {
+  hasStoreLogo,
+  generateBadgeLogoDataUrl,
+  generateBadgeWithNameLogoDataUrl,
+  generateWordmarkLogoDataUrl,
+  readImageFileAsDataUrl,
+  validateLogoDataUrl,
+  LOGO_UPLOAD_MAX_BYTES,
+} from './utils/storeLogo';
 
 export { useLocalStorage } from './hooks/useLocalStorage';
 

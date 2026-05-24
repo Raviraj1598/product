@@ -1,4 +1,5 @@
 import type {
+  AffiliateReferral,
   BuiltPage,
   Category,
   Coupon,
@@ -23,6 +24,8 @@ export interface ServerCatalog {
   settings: StoreSettings;
   /** CMS pages rendered at storefront `/p/:slug` when `published`. */
   builtPages: BuiltPage[];
+  /** Outbound affiliate clicks (admin catalog only). */
+  affiliateReferrals?: AffiliateReferral[];
 }
 
 declare const __ADMIN_BUILD__: boolean;
@@ -66,6 +69,7 @@ export async function fetchCatalog(): Promise<ServerCatalog> {
     coupons: raw.coupons ?? [],
     settings: mergeStoreSettings(raw.settings ?? undefined),
     builtPages: normalizeBuiltPages(raw.builtPages),
+    affiliateReferrals: raw.affiliateReferrals ?? [],
   };
 }
 

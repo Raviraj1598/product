@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { useStore } from '@boutique/shared';
+import { mergeStoreSettings, useStore } from '@boutique/shared';
 import { Package, ShoppingBag, DollarSign, TrendingUp, Star, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
   const { products, orders, reviews, settings } = useStore();
+  const merged = mergeStoreSettings(settings);
 
   const stats = useMemo(() => {
     const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
@@ -141,8 +142,11 @@ export default function AdminDashboard() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
         <p className="text-gray-600">
-          Welcome back! Here&apos;s what&apos;s happening with <strong>{settings.siteName}</strong>.
+          Welcome back! Here&apos;s what&apos;s happening with <strong>{merged.siteName}</strong>.
         </p>
+        {merged.adminPanel.dashboardNote?.trim() && (
+          <p className="text-sm text-gray-500 mt-2 max-w-2xl">{merged.adminPanel.dashboardNote}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

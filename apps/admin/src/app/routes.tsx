@@ -9,6 +9,8 @@ import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminLandingPages from './pages/admin/AdminLandingPages';
 import AdminConfiguration from './pages/admin/AdminConfiguration';
+import AdminSettings from './pages/admin/AdminSettings';
+import AdminDataTransfer from './pages/admin/AdminDataTransfer';
 import AdminHeaderFooter from './pages/admin/AdminHeaderFooter';
 import AdminLogin from './pages/admin/AdminLogin';
 import NotFound from './pages/NotFound';
@@ -37,6 +39,8 @@ export const router = createBrowserRouter([
           { path: 'header-footer', Component: AdminHeaderFooter },
           { path: 'pages', Component: AdminLandingPages },
           { path: 'settings', Component: AdminConfiguration },
+          { path: 'admin-settings', Component: AdminSettings },
+          { path: 'data', Component: AdminDataTransfer },
         ],
       },
         ],

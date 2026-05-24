@@ -1,196 +1,147 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router';
-import { Search, Heart, ShoppingBag, User } from 'lucide-react';
+import { Search, Heart, ShoppingBag, User, Menu, X, Sparkles } from 'lucide-react';
 import { useCustomerAuth } from '../../auth/CustomerAuthContext';
-import { motion } from 'motion/react';
-import { mergeStoreSettings, resolveCategorySlug, useStore } from '@boutique/shared';
-import { toast } from 'sonner';
+import { AnimatePresence, motion } from 'motion/react';
+import { mergeStoreSettings, useStore } from '@boutique/shared';
 import { adminSiteHref } from '../../lib/externalUrls';
 import { StorefrontNavAnchor } from '../../lib/navLinks';
 import { cn } from '../ui/utils';
-import { resolveShopCategoryFilter, shopSearch, isBareShopHref } from '../../lib/shopNavigation';
+import { StoreBrandLogo } from './StoreBrandLogo';
 
-/** Header: announcement bar, logo, dynamic shop categories (+ settings links), utilities. */
+/** Premium storefront header — announcement, logo, settings nav links, search, utilities. */
 export function FashionHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { cart, wishlist, settings, categories, products } = useStore();
-  const { user, status } = useCustomerAuth();
+  const { cart, wishlist, settings } = useStore();
+  const { user } = useCustomerAuth();
   const merged = mergeStoreSettings(settings);
   const [q, setQ] = useState('');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  const headerLinks = merged.headerNavLinks ?? [];
 
   useEffect(() => {
     const param = searchParams.get('q');
     if (param != null && param !== '') setQ(param);
   }, [searchParams]);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname, location.search]);
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const promo =
     merged.announcementBar?.trim() ||
-    `Ethnic couture • Free shipping on orders over $${merged.freeShippingMin.toFixed(0)}`;
-
-  const sortedShopCategories = useMemo(() => {
-    const rows = [...categories].filter((c) => c.published !== false);
-    rows.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-    return rows;
-  }, [categories]);
-
-  const activeShopCategory = useMemo(
-    () =>
-      resolveShopCategoryFilter({
-        categoryParam: searchParams.get('category'),
-        publishedCategories: sortedShopCategories,
-        allCategories: categories,
-        products,
-      }),
-    [categories, sortedShopCategories, products, searchParams],
-  );
-
-  const extraHeaderLinks = useMemo(
-    () => (merged.headerNavLinks ?? []).filter((l) => !isBareShopHref(l.href)),
-    [merged.headerNavLinks],
-  );
-
-  const shopPathActive = location.pathname === '/shop' || location.pathname.startsWith('/shop/');
+    `Thoughtful gifting • Free shipping on orders over $${merged.freeShippingMin.toFixed(0)}`;
 
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = q.trim();
     const nextParams = new URLSearchParams(searchParams);
-    if (trimmed) {
-      nextParams.set('q', trimmed);
-    } else {
-      nextParams.delete('q');
-    }
+    if (trimmed) nextParams.set('q', trimmed);
+    else nextParams.delete('q');
     const qs = nextParams.toString();
     navigate({ pathname: '/shop', search: qs ? `?${qs}` : '' });
+    setMobileOpen(false);
   };
 
-  const baseNav = 'text-sm font-medium text-[var(--luxury-maroon)] hover:text-[var(--luxury-gold)] transition-colors';
-  const ctaNav =
-    'px-4 py-2 bg-[var(--luxury-red)] text-white rounded-lg hover:bg-[var(--luxury-maroon)] transition-colors text-sm font-medium';
+  const ctaLink = headerLinks.find((l) => l.variant === 'cta');
+  const regularLinks = headerLinks.filter((l) => l.variant !== 'cta');
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-md">
-      <motion.div
-        initial={{ opacity: 0.9 }}
-        animate={{ opacity: 1 }}
-        className="bg-gradient-to-r from-[var(--luxury-gold)] to-[var(--luxury-maroon)] text-white py-2"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
-          <span>{promo}</span>
+    <header className="sticky top-0 z-50">
+      {/* Announcement ribbon */}
+      <div className="relative overflow-hidden bg-[var(--luxury-black)] text-white">
+        <div
+          className="absolute inset-0 opacity-40 bg-[length:200%_100%] animate-[shimmer_8s_linear_infinite]"
+          style={{
+            backgroundImage:
+              'linear-gradient(90deg, transparent 0%, var(--luxury-gold) 25%, var(--luxury-maroon) 50%, var(--luxury-gold) 75%, transparent 100%)',
+          }}
+          aria-hidden
+        />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-center gap-2 text-xs sm:text-sm">
+          <Sparkles className="w-3.5 h-3.5 text-[var(--luxury-gold)] shrink-0" aria-hidden />
+          <span className="font-medium tracking-wide text-center">{promo}</span>
+          <Sparkles className="w-3.5 h-3.5 text-[var(--luxury-gold)] shrink-0 hidden sm:block" aria-hidden />
         </div>
-      </motion.div>
+      </div>
 
-      <div className="bg-white border-b border-gray-200">
+      {/* Main bar */}
+      <div
+        className={cn(
+          'border-b transition-all duration-500',
+          scrolled
+            ? 'bg-white/90 backdrop-blur-xl border-black/5 shadow-[0_8px_32px_-12px_rgba(45,27,78,0.18)]'
+            : 'bg-white/95 backdrop-blur-md border-black/[0.06]',
+        )}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 h-18 min-h-[4.25rem]">
-            <Link to="/" className="flex items-center gap-3 shrink-0">
-              <div className="relative">
-                <div className="w-14 h-14 bg-gradient-to-br from-[var(--luxury-maroon)] via-[var(--luxury-red)] to-[var(--luxury-gold)] rounded-lg flex items-center justify-center transform rotate-45">
-                  <span className="text-white text-2xl transform -rotate-45 leading-none">
-                    {merged.headerLogoGlyph?.trim() || 'સ'}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-[var(--luxury-maroon)] to-[var(--luxury-gold)] bg-clip-text text-transparent leading-tight">
-                  {merged.siteName}
-                </h1>
-                <p className="text-[10px] sm:text-xs text-gray-500 tracking-widest uppercase">
-                  {merged.headerTagline}
-                </p>
-              </div>
-            </Link>
+          <div className="flex items-center gap-4 lg:gap-6 min-h-[4.5rem] lg:min-h-[5rem]">
+            <button
+              type="button"
+              className="lg:hidden p-2.5 -ml-1 rounded-xl text-[var(--luxury-maroon)] hover:bg-[var(--luxury-cream)] transition-colors"
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-expanded={mobileOpen}
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
 
+            <StoreBrandLogo settings={merged} variant="header" />
+
+            {/* Desktop nav — settings links only (no categories) */}
             <nav
               aria-label="Main"
-              className="hidden md:flex flex-1 min-w-0 items-center gap-5 xl:gap-8 justify-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden whitespace-nowrap"
+              className="hidden lg:flex flex-1 min-w-0 items-center justify-center gap-1"
             >
-              {sortedShopCategories.length === 0 ? (
-                (merged.headerNavLinks ?? []).map((link) => (
-                  <StorefrontNavAnchor
-                    key={link.id}
-                    link={link}
-                    adminHref={adminSiteHref}
-                    className={
-                      link.variant === 'cta' ? `${ctaNav} shrink-0` : `${baseNav} shrink-0`
-                    }
-                  />
-                ))
-              ) : (
-                <>
-                  <Link
-                    to={{ pathname: '/shop', search: shopSearch(searchParams, { category: null }) }}
-                    className={cn(
-                      baseNav,
-                      'shrink-0',
-                      shopPathActive &&
-                        activeShopCategory.mode === 'all' &&
-                        'text-[var(--luxury-maroon)] underline decoration-[var(--luxury-gold)] decoration-2 underline-offset-4',
-                    )}
-                  >
-                    Shop all
-                  </Link>
-                  {sortedShopCategories.map((category) => {
-                    const slug = resolveCategorySlug(category);
-                    const search = shopSearch(searchParams, { category: slug });
-                    const active =
-                      shopPathActive &&
-                      activeShopCategory.mode === 'one' &&
-                      activeShopCategory.categoryName === category.name;
-                    return (
-                      <Link
-                        key={category.id}
-                        to={{ pathname: '/shop', search }}
-                        className={cn(
-                          baseNav,
-                          'shrink-0',
-                          active &&
-                            'underline decoration-[var(--luxury-maroon)] decoration-2 underline-offset-4 font-semibold',
-                        )}
-                      >
-                        {category.name}
-                      </Link>
-                    );
-                  })}
-                  {extraHeaderLinks.map((link) => (
-                    <StorefrontNavAnchor
-                      key={link.id}
-                      link={link}
-                      adminHref={adminSiteHref}
-                      className={
-                        link.variant === 'cta'
-                          ? `${ctaNav} shrink-0`
-                          : `${baseNav} shrink-0`
-                      }
-                    />
-                  ))}
-                </>
+              {regularLinks.map((link) => (
+                <StorefrontNavAnchor
+                  key={link.id}
+                  link={link}
+                  adminHref={adminSiteHref}
+                  className="px-3.5 py-2 text-sm font-medium text-[var(--luxury-black)]/80 hover:text-[var(--luxury-maroon)] rounded-full hover:bg-[var(--luxury-cream)] transition-all shrink-0"
+                />
+              ))}
+              {ctaLink && (
+                <StorefrontNavAnchor
+                  link={ctaLink}
+                  adminHref={adminSiteHref}
+                  className="ml-2 px-5 py-2.5 bg-gradient-to-r from-[var(--luxury-maroon)] to-[var(--luxury-red)] text-white text-sm font-semibold rounded-full shadow-lg shadow-[var(--luxury-maroon)]/30 hover:shadow-xl hover:-translate-y-0.5 transition-all shrink-0"
+                />
               )}
             </nav>
 
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
               <form onSubmit={onSearchSubmit} className="relative hidden md:block">
                 <input
-                  type="text"
+                  type="search"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search..."
-                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:border-[var(--luxury-gold)] w-48 xl:w-64 transition-all"
+                  placeholder="Search gifts…"
+                  className="w-44 lg:w-52 xl:w-60 pl-10 pr-4 py-2.5 text-sm bg-[var(--luxury-cream)]/80 border border-transparent rounded-full focus:outline-none focus:bg-white focus:border-[var(--luxury-gold)]/50 focus:ring-2 focus:ring-[var(--luxury-maroon)]/10 transition-all placeholder:text-gray-400"
                 />
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-4 h-4 text-[var(--luxury-maroon)]/50 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </form>
 
               <Link
                 to="/shop"
-                className="relative p-2 hover:bg-[var(--luxury-cream)] rounded-full transition-colors hidden sm:flex"
-                title="Wishlist count"
+                className="relative hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-[var(--luxury-maroon)] hover:bg-[var(--luxury-cream)] transition-all hover:scale-105"
+                title="Wishlist"
               >
-                <Heart className="w-5 h-5 text-[var(--luxury-maroon)]" />
+                <Heart className="w-[1.15rem] h-[1.15rem]" />
                 {wishlist.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[var(--luxury-red)] text-white text-xs rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[1.125rem] px-1 flex items-center justify-center bg-[var(--luxury-red)] text-white text-[10px] font-bold rounded-full ring-2 ring-white">
                     {wishlist.length}
                   </span>
                 )}
@@ -198,72 +149,100 @@ export function FashionHeader() {
 
               <Link
                 to={user ? '/account' : '/login'}
-                className="hidden sm:flex p-2 hover:bg-[var(--luxury-cream)] rounded-full transition-colors"
+                className="hidden sm:flex w-10 h-10 items-center justify-center rounded-full text-[var(--luxury-maroon)] hover:bg-[var(--luxury-cream)] transition-all hover:scale-105"
                 title={user ? `Account (${user.name})` : 'Sign in'}
               >
-                <User className="w-5 h-5 text-[var(--luxury-maroon)]" />
-                {status === 'authenticated' && user && (
-                  <span className="sr-only">Signed in as {user.name}</span>
-                )}
+                <User className="w-[1.15rem] h-[1.15rem]" />
               </Link>
 
               <Link
                 to="/cart"
-                className="relative p-2 bg-[var(--luxury-maroon)] text-white rounded-full hover:bg-[var(--luxury-red)] transition-colors"
+                className="relative flex items-center gap-2 pl-3 pr-4 py-2 sm:pl-3.5 sm:pr-5 sm:py-2.5 bg-gradient-to-r from-[var(--luxury-maroon)] to-[var(--luxury-red)] text-white rounded-full hover:shadow-lg hover:shadow-[var(--luxury-maroon)]/35 hover:-translate-y-0.5 transition-all"
               >
-                <ShoppingBag className="w-5 h-5" />
+                <ShoppingBag className="w-[1.15rem] h-[1.15rem]" />
+                <span className="hidden sm:inline text-sm font-semibold">Bag</span>
                 {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[var(--luxury-gold)] text-[var(--luxury-maroon)] text-xs rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center font-medium">
+                  <span className="absolute -top-1 -right-1 sm:static sm:ml-0 min-w-[1.125rem] h-[1.125rem] px-1 flex items-center justify-center bg-[var(--luxury-gold)] text-[var(--luxury-black)] text-[10px] font-bold rounded-full sm:ring-0 ring-2 ring-white">
                     {cartCount > 99 ? '99+' : cartCount}
                   </span>
                 )}
               </Link>
             </div>
           </div>
-
-          {/* Mobile category strip */}
-          {sortedShopCategories.length > 0 && (
-            <nav
-              aria-label="Shop categories"
-              className="md:hidden pb-3 flex gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 px-1"
-            >
-              <Link
-                to={{ pathname: '/shop', search: shopSearch(searchParams, { category: null }) }}
-                className={cn(
-                  'shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors',
-                  shopPathActive && activeShopCategory.mode === 'all'
-                    ? 'bg-[var(--luxury-maroon)] text-white border-[var(--luxury-maroon)]'
-                    : 'bg-[var(--luxury-cream)] text-[var(--luxury-maroon)] border-transparent',
-                )}
-              >
-                All
-              </Link>
-              {sortedShopCategories.map((category) => {
-                const slug = resolveCategorySlug(category);
-                const search = shopSearch(searchParams, { category: slug });
-                const active =
-                  shopPathActive &&
-                  activeShopCategory.mode === 'one' &&
-                  activeShopCategory.categoryName === category.name;
-                return (
-                  <Link
-                    key={`m-${category.id}`}
-                    to={{ pathname: '/shop', search }}
-                    className={cn(
-                      'shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors',
-                      active
-                        ? 'bg-[var(--luxury-maroon)] text-white border-[var(--luxury-maroon)]'
-                        : 'bg-[var(--luxury-cream)] text-[var(--luxury-maroon)] border-transparent',
-                    )}
-                  >
-                    {category.name}
-                  </Link>
-                );
-              })}
-            </nav>
-          )}
         </div>
       </div>
+
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.button
+              type="button"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close menu overlay"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="absolute left-0 right-0 top-full z-50 lg:hidden bg-white border-b border-black/5 shadow-2xl max-h-[min(85vh,520px)] overflow-y-auto"
+            >
+              <div className="p-5 space-y-5">
+                <form onSubmit={onSearchSubmit} className="relative">
+                  <input
+                    type="search"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search gifts…"
+                    className="w-full pl-11 pr-4 py-3 text-sm bg-[var(--luxury-cream)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--luxury-maroon)]/20"
+                  />
+                  <Search className="w-4 h-4 text-[var(--luxury-maroon)] absolute left-4 top-1/2 -translate-y-1/2" />
+                </form>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    to={user ? '/account' : '/login'}
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--luxury-cream)] text-sm font-medium text-[var(--luxury-maroon)]"
+                  >
+                    <User className="w-4 h-4" /> {user ? 'Account' : 'Sign in'}
+                  </Link>
+                  <Link
+                    to="/shop"
+                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--luxury-cream)] text-sm font-medium text-[var(--luxury-maroon)]"
+                  >
+                    <Heart className="w-4 h-4" /> Wishlist
+                    {wishlist.length > 0 ? ` (${wishlist.length})` : ''}
+                  </Link>
+                </div>
+
+                <nav className="space-y-1" aria-label="Mobile main">
+                  {regularLinks.map((link) => (
+                    <StorefrontNavAnchor
+                      key={link.id}
+                      link={link}
+                      adminHref={adminSiteHref}
+                      className="block px-4 py-3 rounded-xl text-sm font-medium text-[var(--luxury-black)]/80 hover:bg-[var(--luxury-cream)]"
+                    />
+                  ))}
+                </nav>
+
+                {ctaLink && (
+                  <StorefrontNavAnchor
+                    link={ctaLink}
+                    adminHref={adminSiteHref}
+                    className="block w-full text-center py-3.5 rounded-2xl bg-gradient-to-r from-[var(--luxury-maroon)] to-[var(--luxury-red)] text-white font-semibold shadow-lg"
+                  />
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

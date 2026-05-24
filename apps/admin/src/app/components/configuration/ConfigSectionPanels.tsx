@@ -21,6 +21,9 @@ import { Plus, Trash2 } from 'lucide-react';
 import type { ConfigSectionId } from './configTypes';
 import { configFld, ConfigFieldRow, ConfigFieldset } from './ConfigPrimitives';
 import { LinkListEditor } from './LinkListEditor';
+import { AffiliatePlatformsEditor } from './AffiliatePlatformsEditor';
+import { HeaderLogoEditor } from './HeaderLogoEditor';
+import { HomepageSpotlightEditor } from './HomepageSpotlightEditor';
 
 const GATEWAYS: CheckoutPaymentGateway[] = ['cod', 'stripe_sandbox_placeholder', 'card_collect_demo'];
 const radiusOptions: StoreThemeTokens['radius'][] = ['none', 'sm', 'md', 'lg', 'xl'];
@@ -112,14 +115,17 @@ export function ConfigSectionPanels({ section, draft, setDraft }: ConfigDraftPro
 
     case 'general-homepage':
       return (
-        <ConfigFieldset title="Homepage">
-          <ConfigFieldRow label="Homepage headline">
-            <input className={configFld} value={draft.storefrontTitle} onChange={(e) => setDraft((s) => ({ ...s, storefrontTitle: e.target.value }))} />
-          </ConfigFieldRow>
-          <ConfigFieldRow label="Homepage subtitle">
-            <input className={configFld} value={draft.storefrontSubtitle} onChange={(e) => setDraft((s) => ({ ...s, storefrontSubtitle: e.target.value }))} />
-          </ConfigFieldRow>
-        </ConfigFieldset>
+        <>
+          <ConfigFieldset title="Hero & trending">
+            <ConfigFieldRow label="Homepage headline" comment="Hero title on the storefront home page.">
+              <input className={configFld} value={draft.storefrontTitle} onChange={(e) => setDraft((s) => ({ ...s, storefrontTitle: e.target.value }))} />
+            </ConfigFieldRow>
+            <ConfigFieldRow label="Homepage subtitle" comment="Hero subtitle and trending section description.">
+              <input className={configFld} value={draft.storefrontSubtitle} onChange={(e) => setDraft((s) => ({ ...s, storefrontSubtitle: e.target.value }))} />
+            </ConfigFieldRow>
+          </ConfigFieldset>
+          <HomepageSpotlightEditor draft={draft} setDraft={setDraft} />
+        </>
       );
 
     case 'design-web':
@@ -192,21 +198,46 @@ export function ConfigSectionPanels({ section, draft, setDraft }: ConfigDraftPro
 
     case 'catalog-policies':
       return (
-        <ConfigFieldset title="Product Policies">
-          <ConfigFieldRow label="Policy lines" comment="One line per row — shown on product detail pages.">
-            <textarea
-              rows={6}
-              className={`${configFld} font-mono text-sm`}
-              value={draft.productPolicyLines.join('\n')}
-              onChange={(e) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  productPolicyLines: e.target.value.split('\n').map((l) => l.trim()).filter(Boolean),
-                }))
-              }
+        <div className="space-y-6">
+          <ConfigFieldset title="Product Policies">
+            <ConfigFieldRow label="Policy lines" comment="One line per row — shown on product detail pages.">
+              <textarea
+                rows={6}
+                className={`${configFld} font-mono text-sm`}
+                value={draft.productPolicyLines.join('\n')}
+                onChange={(e) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    productPolicyLines: e.target.value.split('\n').map((l) => l.trim()).filter(Boolean),
+                  }))
+                }
+              />
+            </ConfigFieldRow>
+          </ConfigFieldset>
+          <ConfigFieldset title="Affiliate disclosure">
+            <ConfigFieldRow label="FTC disclosure text" comment="Shown on affiliate product pages and cards.">
+              <textarea
+                rows={4}
+                className={configFld}
+                placeholder="As an affiliate, we may earn a commission…"
+                value={draft.affiliateDisclosure ?? ''}
+                onChange={(e) => setDraft((d) => ({ ...d, affiliateDisclosure: e.target.value }))}
+              />
+            </ConfigFieldRow>
+          </ConfigFieldset>
+        </div>
+      );
+
+    case 'catalog-affiliate':
+      return (
+        <div className="space-y-6">
+          <ConfigFieldset title="Affiliate platforms">
+            <AffiliatePlatformsEditor
+              platforms={m.affiliatePlatforms}
+              onChange={(affiliatePlatforms) => setDraft((d) => ({ ...d, affiliatePlatforms }))}
             />
-          </ConfigFieldRow>
-        </ConfigFieldset>
+          </ConfigFieldset>
+        </div>
       );
 
     case 'shipping-settings':
@@ -288,11 +319,9 @@ export function ConfigSectionPanels({ section, draft, setDraft }: ConfigDraftPro
     case 'content-header':
       return (
         <div className="space-y-6">
-          <ConfigFieldset title="Header">
-            <ConfigFieldRow label="Logo glyph">
-              <input className={`${configFld} text-center text-2xl max-w-[120px]`} maxLength={3} value={m.headerLogoGlyph} onChange={(e) => setDraft((d) => ({ ...d, headerLogoGlyph: e.target.value }))} />
-            </ConfigFieldRow>
-            <ConfigFieldRow label="Tagline">
+          <HeaderLogoEditor draft={draft} setDraft={setDraft} />
+          <ConfigFieldset title="Header tagline">
+            <ConfigFieldRow label="Tagline" comment="Shown under store name when no logo image is set.">
               <input className={configFld} value={m.headerTagline} onChange={(e) => setDraft((d) => ({ ...d, headerTagline: e.target.value }))} />
             </ConfigFieldRow>
           </ConfigFieldset>

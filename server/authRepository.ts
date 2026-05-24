@@ -33,9 +33,14 @@ export interface AdminUserRow {
 export interface AuthRepository {
   findUserByEmail(email: string): { id: string; email: string; password_hash: string; display_name: string } | undefined;
   findUserById(id: string): AdminUserRow | undefined;
+  updatePassword(userId: string, passwordHash: string): boolean;
   createSession(userId: string, rawToken: string, expiresAt: Date): void;
   findSessionByToken(rawToken: string): { user_id: string; expires_at: string } | undefined;
   deleteSession(rawToken: string): void;
+    deleteOtherSessions(userId: string, keepTokenHash: string): number;
+    deleteOtherSessionsExceptToken(userId: string, rawToken: string): number;
+  countActiveSessions(userId: string): number;
+  touchSession(rawToken: string, expiresAt: Date): boolean;
   deleteExpiredSessions(): void;
   close(): void;
 }
@@ -111,6 +116,13 @@ export function createAuthRepository(options: { dirname: string; dbFilename?: st
         .get(id) as AdminUserRow | undefined;
     },
 
+    updatePassword(userId: string, passwordHash: string) {
+      const result = db
+        .prepare(`UPDATE admin_users SET password_hash = ? WHERE id = ?`)
+        .run(passwordHash, userId);
+      return result.changes > 0;
+    },
+
     createSession(userId: string, rawToken: string, expiresAt: Date) {
       const id = `ses_${crypto.randomUUID().slice(0, 12)}`;
       db.prepare(
@@ -126,6 +138,41 @@ export function createAuthRepository(options: { dirname: string; dbFilename?: st
 
     deleteSession(rawToken: string) {
       db.prepare(`DELETE FROM admin_sessions WHERE token_hash = ?`).run(hashSessionToken(rawToken));
+    },
+
+    deleteOtherSessions(userId: string, keepTokenHash: string) {
+      const result = db
+        .prepare(
+          `DELETE FROM admin_sessions WHERE user_id = ? AND token_hash != ? AND expires_at >= datetime('now')`,
+        )
+        .run(userId, keepTokenHash);
+      return result.changes;
+    },
+
+    deleteOtherSessionsExceptToken(userId: string, rawToken: string) {
+      const keep = hashSessionToken(rawToken);
+      const result = db
+        .prepare(
+          `DELETE FROM admin_sessions WHERE user_id = ? AND token_hash != ? AND expires_at >= datetime('now')`,
+        )
+        .run(userId, keep);
+      return result.changes;
+    },
+
+    countActiveSessions(userId: string) {
+      const row = db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM admin_sessions WHERE user_id = ? AND expires_at >= datetime('now')`,
+        )
+        .get(userId) as { n: number };
+      return row.n;
+    },
+
+    touchSession(rawToken: string, expiresAt: Date) {
+      const result = db
+        .prepare(`UPDATE admin_sessions SET expires_at = ? WHERE token_hash = ?`)
+        .run(expiresAt.toISOString(), hashSessionToken(rawToken));
+      return result.changes > 0;
     },
 
     deleteExpiredSessions() {

@@ -1,12 +1,12 @@
 import type { Category, Coupon, Product, Review } from '../types';
 
 export const defaultCategories: Category[] = [
-  { id: '1', name: 'Electronics', description: 'Cutting-edge electronic devices and gadgets', image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop' },
-  { id: '2', name: 'Clothing', description: 'Trendy fashion and premium apparel', image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop' },
-  { id: '3', name: 'Home & Living', description: 'Beautiful home decor and essentials', image: 'https://images.unsplash.com/photo-1556912173-3bb406ef7e77?w=400&h=300&fit=crop' },
-  { id: '4', name: 'Sports & Outdoors', description: 'Gear for active lifestyles', image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&h=300&fit=crop' },
-  { id: '5', name: 'Books & Media', description: 'Literature, music, and entertainment', image: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400&h=300&fit=crop' },
-  { id: '6', name: 'Beauty & Health', description: 'Personal care and wellness products', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop' },
+  { id: '1', name: 'For Her', description: 'Thoughtful gifts she will love', image: 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=400&h=300&fit=crop', slug: 'for-her', sortOrder: 1, published: true },
+  { id: '2', name: 'For Him', description: 'Perfect picks for the special men in your life', image: 'https://images.unsplash.com/photo-1549465220-1a8b923823cd?w=400&h=300&fit=crop', slug: 'for-him', sortOrder: 2, published: true },
+  { id: '3', name: 'Birthdays', description: 'Celebrate another year with the perfect present', image: 'https://images.unsplash.com/photo-1607083206869-4c7672f72a7a?w=400&h=300&fit=crop', slug: 'birthdays', sortOrder: 3, published: true },
+  { id: '4', name: 'Occasions', description: 'Anniversaries, weddings, and milestone moments', image: 'https://images.unsplash.com/photo-1512909006721-3d0158887362?w=400&h=300&fit=crop', slug: 'occasions', sortOrder: 4, published: true },
+  { id: '5', name: 'Under $50', description: 'Great gifts that will not break the bank', image: 'https://images.unsplash.com/photo-1549465220-1a8b923823cd?w=400&h=300&fit=crop', slug: 'under-50', sortOrder: 5, published: true },
+  { id: '6', name: 'Partner Picks', description: 'Curated affiliate favourites from trusted stores', image: 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=400&h=300&fit=crop', slug: 'partner-picks', sortOrder: 6, published: true },
 ];
 
 export const defaultProducts: Product[] = [
@@ -181,6 +181,28 @@ export const defaultProducts: Product[] = [
     reviewCount: 145,
     featured: false,
     createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'aff-1',
+    name: 'Luxury Spa Gift Set (Partner Pick)',
+    description:
+      'A bestselling spa gift basket with bath bombs, candles, and body care essentials—perfect for birthdays and thank-you gifts.',
+    price: 49.99,
+    compareAtPrice: 64.99,
+    images: ['https://images.unsplash.com/photo-1607083206869-4c7672f72a7a?w=800&h=800&fit=crop'],
+    category: 'Partner Picks',
+    stock: 0,
+    sku: 'AFF-SPA-001',
+    tags: ['spa', 'self-care', 'affiliate', 'under-50'],
+    rating: 4.8,
+    reviewCount: 892,
+    featured: true,
+    purchaseMode: 'affiliate',
+    affiliateUrl: 'https://www.amazon.com/s?k=spa+gift+set',
+    affiliateVendor: 'Amazon',
+    affiliateButtonLabel: 'View on Amazon',
+    createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
 ];

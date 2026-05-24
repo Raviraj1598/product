@@ -7,17 +7,20 @@ import type {
   StoreSocialLink,
   StoreThemeTokens,
 } from '../types';
+import { defaultAffiliatePlatforms } from './affiliatePlatforms';
+import { defaultAdminPanelSettings } from './adminPanelSettings';
+import { defaultHomepageCollectionSpotlight } from './homepageSpotlight';
 
 export function defaultThemeTokens(): StoreThemeTokens {
   return {
-    primary: '#7a1c1c',
-    accent: '#c9a961',
-    surface: '#faf8f5',
-    bandDark: '#1a0f0a',
+    primary: '#6B2D8C',
+    accent: '#E8725C',
+    surface: '#FEF7F3',
+    bandDark: '#2D1B4E',
     pageBackground: '#ffffff',
-    foreground: '#1a0f0a',
-    border: 'rgba(0, 0, 0, 0.1)',
-    radius: 'md',
+    foreground: '#2D1B4E',
+    border: 'rgba(45, 27, 78, 0.12)',
+    radius: 'lg',
   };
 }
 
@@ -60,31 +63,31 @@ export function defaultPaymentMethods(): PaymentMethodConfig[] {
 
 export function defaultHeaderNavLinks(): StorefrontNavLink[] {
   return [
-    { id: 'hdr_women', label: 'Women', href: '/shop' },
-    { id: 'hdr_men', label: 'Men', href: '/shop' },
-    { id: 'hdr_wedding', label: 'Wedding', href: '/shop' },
-    { id: 'hdr_navratri', label: 'Navratri', href: '/shop' },
-    { id: 'hdr_new', label: 'New Arrivals', href: '/shop' },
-    { id: 'hdr_sale', label: 'Sale', href: '/shop', variant: 'cta' },
+    { id: 'hdr_her', label: 'For Her', href: '/shop' },
+    { id: 'hdr_him', label: 'For Him', href: '/shop' },
+    { id: 'hdr_bday', label: 'Birthdays', href: '/shop' },
+    { id: 'hdr_occasions', label: 'Occasions', href: '/shop' },
+    { id: 'hdr_under50', label: 'Under $50', href: '/shop' },
+    { id: 'hdr_deals', label: 'Deals', href: '/shop', variant: 'cta' },
     { id: 'hdr_admin', label: 'Admin', href: '/', openInAdmin: true },
   ];
 }
 
 export function defaultFooterShopLinks(): StorefrontNavLink[] {
   return [
-    { id: 'ft_all', label: 'All collections', href: '/shop' },
-    { id: 'ft_chaniya', label: 'Chaniya Choli', href: '/shop' },
-    { id: 'ft_lehenga', label: 'Lehenga', href: '/shop' },
-    { id: 'ft_wed', label: 'Wedding', href: '/shop' },
+    { id: 'ft_all', label: 'All gifts', href: '/shop' },
+    { id: 'ft_her', label: 'For Her', href: '/shop' },
+    { id: 'ft_him', label: 'For Him', href: '/shop' },
+    { id: 'ft_occasions', label: 'Occasions', href: '/shop' },
   ];
 }
 
 export function defaultFooterMiddleLinks(): StorefrontNavLink[] {
   return [
-    { id: 'ft_orders', label: 'Orders', href: '/orders', openInAdmin: true },
-    { id: 'ft_products', label: 'Products', href: '/products', openInAdmin: true },
-    { id: 'ft_pages', label: 'Pages', href: '/pages', openInAdmin: true },
-    { id: 'ft_settings', label: 'Store settings', href: '/settings', openInAdmin: true },
+    { id: 'ft_about', label: 'About us', href: '/p/about' },
+    { id: 'ft_contact', label: 'Contact', href: '/p/contact' },
+    { id: 'ft_faq', label: 'FAQ', href: '/p/faq' },
+    { id: 'ft_shipping', label: 'Shipping & returns', href: '/p/shipping' },
   ];
 }
 
@@ -99,44 +102,50 @@ export function defaultFooterSocialLinks(): StoreSocialLink[] {
 
 export function defaultFooterLegalLinks(): StorefrontNavLink[] {
   return [
-    { id: 'leg_privacy', label: 'Privacy', href: '/shop' },
-    { id: 'leg_terms', label: 'Terms', href: '/shop' },
-    { id: 'leg_ship', label: 'Shipping', href: '/shop' },
+    { id: 'leg_privacy', label: 'Privacy', href: '/p/privacy' },
+    { id: 'leg_terms', label: 'Terms', href: '/p/terms' },
+    { id: 'leg_affiliate', label: 'Affiliate disclosure', href: '/p/affiliate-disclosure' },
   ];
 }
 
 export const defaultStoreSettings: StoreSettings = {
-  siteName: 'Sanskriti',
-  storefrontTitle: 'Shop the latest',
+  siteName: 'GiftJoy',
+  storefrontTitle: 'Curated gifts for every moment',
   storefrontSubtitle:
-    'Premium ethnic couture—from festive chaniya edits to bridal lehengas—with live inventory from your admin.',
-  footerText: '© 2026 Sanskriti Ethnic Couture. All rights reserved.',
-  announcementBar: 'Festive edits • Mirrors & zari • Made for movement',
+    'Handpicked presents for birthdays, anniversaries, and celebrations—shop our own collection or discover partner picks via affiliate links.',
+  footerText: '© 2026 GiftJoy. All rights reserved.',
+  announcementBar: 'Free gift wrap on orders $50+ • Curated affiliate picks • Same-day dispatch on in-stock items',
   freeShippingMin: 50,
   shippingFlatRate: 10,
   taxPercent: 10,
   productPolicyLines: [
-    '30-day return policy.',
-    '1-year warranty included on eligible items.',
+    '30-day return policy on in-store items.',
+    'Affiliate partner purchases follow the partner store return policy.',
   ],
   shippingMethods: defaultShippingMethods(),
   paymentMethods: defaultPaymentMethods(),
   theme: defaultThemeTokens(),
-  headerTagline: 'Ethnic couture',
-  headerLogoGlyph: 'સ',
+  headerTagline: 'Thoughtful gifting',
+  headerLogoGlyph: 'G',
+  affiliateDisclosure:
+    'As an affiliate, we may earn a commission when you purchase through our links—at no extra cost to you.',
+  amazonAffiliateTag: 'aaravitech-21',
+  affiliatePlatforms: defaultAffiliatePlatforms(),
   headerNavLinks: defaultHeaderNavLinks(),
   footerBrandBlurb:
-    'Premium fabrics, heirloom silhouettes, and festive palettes—crafted for movement and mirrored light.',
+    'Curated gift ideas for every occasion. Mix in-house favourites with trusted partner picks—all in one place.',
   footerShopColumnTitle: 'Shop',
   footerShopLinks: defaultFooterShopLinks(),
-  footerMiddleColumnTitle: 'Manage',
+  footerMiddleColumnTitle: 'Help & info',
   footerMiddleLinks: defaultFooterMiddleLinks(),
   footerContactColumnTitle: 'Contact',
-  footerContactAddress: 'Serving customers worldwide • Ethnic couture HQ',
+  footerContactAddress: 'Serving gift lovers worldwide • GiftJoy HQ',
   footerContactPhone: '+1 (555) 010-9988',
-  footerContactEmail: 'hello@boutique.example.com',
+  footerContactEmail: 'hello@giftjoy.example.com',
   footerSocialLinks: defaultFooterSocialLinks(),
   footerLegalLinks: defaultFooterLegalLinks(),
+  homepageCollectionSpotlight: defaultHomepageCollectionSpotlight(),
+  adminPanel: defaultAdminPanelSettings(),
 };
 
 export function mergeStoreSettings(partial?: Partial<StoreSettings> | null): StoreSettings {
@@ -170,6 +179,22 @@ export function mergeStoreSettings(partial?: Partial<StoreSettings> | null): Sto
     partial?.footerLegalLinks !== undefined
       ? [...partial.footerLegalLinks]
       : [...defaultFooterLegalLinks()];
+  const affiliatePlatforms =
+    partial?.affiliatePlatforms !== undefined
+      ? [...partial.affiliatePlatforms]
+      : [...defaultAffiliatePlatforms()];
+  const adminPanel = {
+    ...defaultAdminPanelSettings(),
+    ...(partial?.adminPanel ?? {}),
+  };
+  const homepageCollectionSpotlight = {
+    ...defaultHomepageCollectionSpotlight(),
+    ...(partial?.homepageCollectionSpotlight ?? {}),
+    categoryIds:
+      partial?.homepageCollectionSpotlight?.categoryIds !== undefined
+        ? [...partial.homepageCollectionSpotlight.categoryIds]
+        : defaultHomepageCollectionSpotlight().categoryIds,
+  };
 
   return {
     ...base,
@@ -188,6 +213,17 @@ export function mergeStoreSettings(partial?: Partial<StoreSettings> | null): Sto
     footerLegalLinks,
     stripePublishableKey:
       partial?.stripePublishableKey !== undefined ? partial.stripePublishableKey : base.stripePublishableKey,
+    headerLogoUrl:
+      partial?.headerLogoUrl !== undefined ? partial.headerLogoUrl : base.headerLogoUrl,
+    headerLogoDesign:
+      partial?.headerLogoDesign !== undefined ? partial.headerLogoDesign : base.headerLogoDesign,
+    affiliateDisclosure:
+      partial?.affiliateDisclosure !== undefined ? partial.affiliateDisclosure : base.affiliateDisclosure,
+    amazonAffiliateTag:
+      partial?.amazonAffiliateTag !== undefined ? partial.amazonAffiliateTag : base.amazonAffiliateTag,
+    affiliatePlatforms,
+    adminPanel,
+    homepageCollectionSpotlight,
   };
 }
 
@@ -215,6 +251,7 @@ export function applyStoreTheme(theme: StoreThemeTokens) {
   root.style.setProperty('--luxury-gold', theme.accent);
   root.style.setProperty('--luxury-cream', theme.surface);
   root.style.setProperty('--luxury-black', theme.bandDark);
+  root.style.setProperty('--luxury-red', theme.accent);
 }
 
 export function coercePaymentGateway(raw: unknown): CheckoutPaymentGateway {

@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
 
 import type { AuthRepository } from '../authRepository';
-import { resolveAdminUser } from './session';
+import { resolveAdminUser, refreshAdminSession } from './session';
 
 const ADMIN_SECRET = process.env.ADMIN_API_SECRET?.trim();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -23,6 +23,7 @@ function adminTokenMatches(secret: string, presentedRaw: unknown): boolean {
 export function createRequireAdmin(authRepo: AuthRepository) {
   return function requireAdmin(req: Request, res: Response, next: NextFunction) {
     if (resolveAdminUser(req, authRepo)) {
+      refreshAdminSession(authRepo, req);
       next();
       return;
     }
@@ -35,8 +36,8 @@ export function createRequireAdmin(authRepo: AuthRepository) {
       }
     }
 
-    if (!isProduction && !ADMIN_SECRET) {
-      console.warn('[auth] No session and no ADMIN_API_SECRET — allowing admin route (development only)');
+    if (!isProduction && !ADMIN_SECRET && process.env.ALLOW_INSECURE_ADMIN_DEV === '1') {
+      console.warn('[auth] ALLOW_INSECURE_ADMIN_DEV=1 — allowing admin route without login (development only)');
       next();
       return;
     }

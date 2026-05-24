@@ -19,6 +19,7 @@ import {
   WishlistItem,
   StoreSettings,
   BuiltPage,
+  AffiliateReferral,
 } from '../types';
 import { fetchCatalog, isAdminCatalogClient, putCatalog, postOrder } from '../api/catalogApi';
 import {
@@ -51,6 +52,10 @@ interface StoreContextType {
   setSettings: (settings: StoreSettings | ((prev: StoreSettings) => StoreSettings)) => void;
   builtPages: BuiltPage[];
   setBuiltPages: (pages: BuiltPage[] | ((prev: BuiltPage[]) => BuiltPage[])) => void;
+  affiliateReferrals: AffiliateReferral[];
+  setAffiliateReferrals: (
+    refs: AffiliateReferral[] | ((prev: AffiliateReferral[]) => AffiliateReferral[]),
+  ) => void;
   addToCart: (productId: string, quantity: number, selectedVariants?: Record<string, string>) => void;
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
@@ -75,6 +80,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [coupons, setCoupons] = useState<Coupon[]>(() => [...defaultCoupons]);
   const [settings, setSettings] = useState<StoreSettings>(() => mergeStoreSettings(undefined));
   const [builtPages, setBuiltPages] = useState<BuiltPage[]>([]);
+  const [affiliateReferrals, setAffiliateReferrals] = useState<AffiliateReferral[]>([]);
 
   const [catalogReady, setCatalogReady] = useState(false);
   const [catalogSyncEnabled, setCatalogSyncEnabled] = useState(false);
@@ -99,6 +105,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setCoupons(data.coupons);
     setSettings(mergeStoreSettings(data.settings));
     setBuiltPages(data.builtPages ?? []);
+    setAffiliateReferrals(data.affiliateReferrals ?? []);
   }, []);
 
   useEffect(() => {
@@ -141,15 +148,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         coupons,
         settings: mergeStoreSettings(settings),
         builtPages,
+        affiliateReferrals,
       }).catch((err) => {
         console.error('[store] Failed to persist catalog:', err);
       });
     }, 480);
 
     return () => window.clearTimeout(t);
-  }, [products, categories, customers, orders, reviews, coupons, settings, builtPages, catalogSyncEnabled]);
+  }, [products, categories, customers, orders, reviews, coupons, settings, builtPages, affiliateReferrals, catalogSyncEnabled]);
 
   const addToCart = (productId: string, quantity: number, selectedVariants?: Record<string, string>) => {
+    const product = products.find((p) => p.id === productId);
+    if (product && product.purchaseMode === 'affiliate' && product.affiliateUrl?.trim()) {
+      console.warn('[store] Affiliate products cannot be added to cart:', productId);
+      return;
+    }
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.productId === productId);
       if (existingItem) {
@@ -262,6 +275,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setSettings,
         builtPages,
         setBuiltPages,
+        affiliateReferrals,
+        setAffiliateReferrals,
         addToCart,
         removeFromCart,
         updateCartQuantity,
