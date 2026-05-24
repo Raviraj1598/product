@@ -1,15 +1,13 @@
 # Dependencies
 node_modules/
 
-# Production builds — generated on the server via `npm run build` (never commit)
+# Production Build
 dist/
 build/
 
-# Environment variables — never commit secrets or local overrides
+# Environment Variables
 .env
 .env.local
-.env.development
-.env.production
 .env.development.local
 .env.test.local
 .env.production.local
@@ -20,18 +18,17 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Editor files
+# Editor Files
 .vscode/
 .idea/
 
-# OS files
+# Mac / Windows Files
 .DS_Store
 Thumbs.db
 
-# Cache
+# Cache Files
 .cache/
 .parcel-cache/
-.eslintcache
 
 # Vite
 vite.svg
@@ -42,8 +39,15 @@ vite.svg
 # Testing
 coverage/
 
-# Runtime SQLite + legacy catalog (created on first API boot — do not commit)
-/server/data/*
-!/server/data/.gitkeep
+# Store API persisted catalog (development)
+/server/data/
 
 temp/
+
+# ESLint Cache
+.eslintcache
+
+# Optional Lock Files
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
